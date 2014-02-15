@@ -1,4 +1,4 @@
 oda
 ===
 
-Orthogonal Data Augmentation
+Orthogonal Data Augmentation, a C++ library for R
