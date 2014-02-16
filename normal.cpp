@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <armadillo>
+#include <random>
 
 using namespace std;
 using namespace arma;
@@ -27,6 +28,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
 	Col<double> ya(p);
+	Col<double> Z(p);
 	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
 	Col<double> Bmle(p);
@@ -67,6 +69,8 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	//Miscellaneous//
 	Lam=diagmat(lam);
 	yo=yo-mean(yo); //Center Yo
+	std::mt19937 engine;
+	std::normal_distribution<> N(0,1);
 
 
 	for (int t = 0; t < niter; t++)
@@ -74,8 +78,9 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		//Run Gibbs Sampler//
 		inc_indices=find(gamma);
 		xagam=xa.cols(inc_indices);
+		Z.imbue( [&]() { return N(engine); } );
 	}
 
 
-	cout << xo.t()*xo << endl;
+
 }
