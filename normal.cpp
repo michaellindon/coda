@@ -20,6 +20,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Mat<double> xagam;
 	Mat<double> xaxa(p,p);
 	Mat<double> xoxo(p,p);
+	Mat<double> xoxogam(p,p);
 	Mat<double> D(p,p);
 	Mat<double> Lam(p,p);
 	Mat<double> Lamgam(p,p);
@@ -31,6 +32,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Mat<double> Ip=eye(p,p);
 	Mat<double> Px(no,no);
 	Mat<double> ya_mcmc(p,niter,fill::zeros);
+	Mat<double> prob_mcmc(p,niter,fill::zeros);
 	Mat<uword>  gamma_mcmc(p,niter,fill::ones);
 	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
@@ -59,6 +61,14 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	std::copy(rpriorprob, rpriorprob + priorprob.n_elem, priorprob.memptr());
 
 
+	//Scale and Center Xo//
+	for (int c = 0; c < p; c++)
+	{
+		xo.col(c)-=mean(xo.col(c))*colvec(no,fill::ones); //Center
+		xo.col(c)*=sqrt(no/dot(xo.col(c),xo.col(c))); // Scale
+	}
+
+
 	//Create Xa//
 	xoxo=xo.t()*xo;
 	xaxa=xoxo;
@@ -68,14 +78,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	xa=chol(xaxa);
 	D=xaxa+xoxo;
 	d=D.diag();
-
-
-	//Scale and Center Xo//
-	for (int c = 0; c < p; c++)
-	{
-		xo.col(c)-=mean(xo.col(c))*colvec(no,fill::ones); //Center
-		xo.col(c)*=sqrt(no/dot(xo.col(c),xo.col(c))); // Scale
-	}
 
 
 	//Initialize Parameters at MLE//
@@ -91,8 +93,9 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	std::gamma_distribution<> Ga(a,1);
 	std::uniform_real_distribution<> Un(0,1);
 
+	
 	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
-	yo=yo-mean(yo); //Center Yo
+	yo=yo-mean(yo); 
 	Lam=diagmat(lam);
 	for (int c = 0; c < p; c++)
 	{
@@ -103,24 +106,27 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	}
 
 
+	//Run Gibbs Sampler//
 	ya_mcmc.col(0)=ya;
 	phi_mcmc(0)=phi;
 	gamma_mcmc.col(0)=gamma;
+	prob_mcmc.col(0)=prob;
 	for (int t = 1; t < niter; t++)
 	{
-		//Run Gibbs Sampler//
+		//Form Submatrices
 		inc_indices=find(gamma);
 		Lamgam=Lam.submat(inc_indices,inc_indices);
 		xagam=xa.cols(inc_indices);
 		xogam=xo.cols(inc_indices);
+		xoxogam=xoxo.submat(inc_indices,inc_indices);
 
 		//Draw Phi//
-		b=0.5*dot(yo,(Ino-xogam*(xogam.t()*xogam+Lamgam).i()*xogam.t())*yo);
+		b=0.5*dot(yo,(Ino-xogam*(xoxogam+Lamgam).i()*xogam.t())*yo);
 		phi=Ga(engine)/b;
 
 		//Draw Ya//
-		mu=xagam*(xogam.t()*xogam+Lamgam).i()*xogam.t()*yo;
-		E=Ip+xagam*(xogam.t()*xogam+Lamgam).i()*xagam.t();
+		mu=xagam*(xoxogam+Lamgam).i()*xogam.t()*yo;
+		E=Ip+xagam*(xoxogam+Lamgam).i()*xagam.t();
 		L=chol(E);
 		Z.imbue( [&]() { return N(engine); } );
 		ya=mu+L*Z;
@@ -132,19 +138,27 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 			prob(i)=odds(i)/(1+odds(i));
 
 			if(Un(engine)<prob(i)){
-			gamma(i)=1;
+				gamma(i)=1;
 			}else{
-			gamma(i)=0;
+				gamma(i)=0;
 			}
-
-
 		}
 
+		//Store Draws//
 		gamma_mcmc.col(t)=gamma;
+		prob_mcmc.col(t)=prob;
 		ya_mcmc.col(t)=ya;
 		phi_mcmc(t)=phi;
 	}
 
-	cout<<prob<<endl;
-	cout<<gamma<<endl;
+	for (int i = 0; i < p; ++i)
+	{
+		cout<< mean(prob_mcmc.row(i))<<endl;
+
+	}
+	for (int i = 0; i < p; ++i)
+	{
+		cout<< mean(gamma_mcmc.row(i))<<endl;
+
+	}
 }
