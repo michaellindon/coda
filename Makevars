@@ -1,1 +1,2 @@
 PKG_LIBS='-larmadillo'
+PKG_CXXFLAGS='-std=c++11'
