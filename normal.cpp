@@ -7,27 +7,41 @@ using namespace arma;
 
 extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter){
 
+
+	//Define Variables//
 	int niter=*rniter;
 	int p=*rp;
 	int no=*rno;
-
+	int a=(no-1)/2;
+	int b;
+	double phi;
 	Mat<double> xa(p,p);
 	Mat<double> xagam;
 	Mat<double> xaxa(p,p);
 	Mat<double> Lam(p,p);
 	Mat<double> xo(no,p);
+	Mat<double> Ino=eye(no,no);
+	Mat<double> Px(no,no);
+	Mat<double> ya_mcmc(niter,p,fill::zeros);
+	Mat<double> gamma_mcmc(niter,p,fill::ones);
+	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
-	Col<uword> gamma(p,fill::ones);
-	Col<uword> inc_indices(p,fill::ones);
+	Col<double> ya(p);
 	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
+	Col<double> Bmle(p);
+	Col<uword> gamma(p,fill::ones);
+	Col<uword> inc_indices(p,fill::ones);
 
+
+	//Copy RData Into Matrix Classes//
 	std::copy(ryo, ryo + yo.n_elem, yo.memptr());
 	std::copy(rxo, rxo + xo.n_elem, xo.memptr());
 	std::copy(rlam, rlam + lam.n_elem, lam.memptr());
 	Lam=diagmat(lam);
 
 
+	//Create Xa//
 	xaxa=xo.t()*xo;
 	xaxa.diag()=vec(p,fill::zeros);
 	eig_sym(xaxa_eigenval,xaxa);
@@ -36,12 +50,13 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 
 
-	Col<double> phi_mcmc(niter,fill::ones);
-	Mat<double> ya_mcmc(niter,p,fill::zeros);
-	Mat<double> gamma_mcmc(niter,p,fill::ones);
+	//Initialize Parameters at MLE//
+	Px=xo*(xo.t()*xo).i()*xo.t();
+	phi=(no-p)/dot(yo,((Ino-Px)*yo));
+	Bmle=(xo.t()*xo).i()*xo.t()*yo;
+	ya=xa*Bmle;
 
-	int a=(no-1)/2;
-	int b;
+
 
 	for (int t = 0; t < niter; t++)
 	{
@@ -49,5 +64,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		inc_indices=find(gamma);
 		xagam=xa.cols(inc_indices);
 	}
+
 
 }
