@@ -38,7 +38,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	std::copy(ryo, ryo + yo.n_elem, yo.memptr());
 	std::copy(rxo, rxo + xo.n_elem, xo.memptr());
 	std::copy(rlam, rlam + lam.n_elem, lam.memptr());
-	Lam=diagmat(lam);
+
 
 
 	//Create Xa//
@@ -47,6 +47,13 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	eig_sym(xaxa_eigenval,xaxa);
 	xaxa-=(xaxa_eigenval(0)-1)*eye(xaxa.n_rows,xaxa.n_cols);
 	xa=chol(xaxa);
+
+	//Scale and Center Xo//
+	for (int c = 0; c < p; c++)
+	{
+		xo.col(c)-=mean(xo.col(c))*colvec(no,fill::ones); //Center
+		xo.col(c)*=sqrt(no/dot(xo.col(c),xo.col(c))); // Scale
+	}
 
 
 
@@ -57,13 +64,18 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	ya=xa*Bmle;
 
 
+	//Miscellaneous//
+	Lam=diagmat(lam);
+	yo=yo-mean(yo); //Center Yo
+
 
 	for (int t = 0; t < niter; t++)
 	{
-		/*Run Gibbs Sampler*/
+		//Run Gibbs Sampler//
 		inc_indices=find(gamma);
 		xagam=xa.cols(inc_indices);
 	}
 
 
+	cout << xo.t()*xo << endl;
 }
