@@ -74,16 +74,16 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	xaxa=xoxo;
 	xaxa.diag()=vec(p,fill::zeros);
 	eig_sym(xaxa_eigenval,xaxa);
-	xaxa-=(xaxa_eigenval(0)-1)*eye(xaxa.n_rows,xaxa.n_cols);
+	xaxa-=(xaxa_eigenval(0)-0.001)*eye(xaxa.n_rows,xaxa.n_cols);
 	xa=chol(xaxa);
 	D=xaxa+xoxo;
 	d=D.diag();
 
 
 	//Initialize Parameters at MLE//
-	Px=xo*(xo.t()*xo).i()*xo.t();
+	Px=xo*(xoxo).i()*xo.t();
 	phi=(no-p)/dot(yo,((Ino-Px)*yo));
-	Bmle=(xo.t()*xo).i()*xo.t()*yo;
+	Bmle=(xoxo).i()*xo.t()*yo;
 	ya=xa*Bmle;
 
 
@@ -93,7 +93,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	std::gamma_distribution<> Ga(a,1);
 	std::uniform_real_distribution<> Un(0,1);
 
-	
+
 	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
 	yo=yo-mean(yo); 
 	Lam=diagmat(lam);
@@ -136,6 +136,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		{
 			odds(i)=priorodds(i)*ldl(i)*exp(0.5*phi*d2dl(i)*Bmle2(i));
 			prob(i)=odds(i)/(1+odds(i));
+			if(prob(i)!=prob(i)) prob(i)=1;	 //Catch NaN
 
 			if(Un(engine)<prob(i)){
 				gamma(i)=1;
@@ -154,11 +155,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	for (int i = 0; i < p; ++i)
 	{
 		cout<< mean(prob_mcmc.row(i))<<endl;
-
-	}
-	for (int i = 0; i < p; ++i)
-	{
-		cout<< mean(gamma_mcmc.row(i))<<endl;
 
 	}
 }
