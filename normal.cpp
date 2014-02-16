@@ -6,7 +6,7 @@
 using namespace std;
 using namespace arma;
 
-extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter){
+extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob){
 
 
 	//Define Variables//
@@ -19,19 +19,35 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Mat<double> xa(p,p);
 	Mat<double> xagam;
 	Mat<double> xaxa(p,p);
+	Mat<double> xoxo(p,p);
+	Mat<double> D(p,p);
 	Mat<double> Lam(p,p);
+	Mat<double> Lamgam(p,p);
 	Mat<double> xo(no,p);
+	Mat<double> E(p,p);
+	Mat<double> L(p,p);
+	Mat<double> xogam;
 	Mat<double> Ino=eye(no,no);
+	Mat<double> Ip=eye(p,p);
 	Mat<double> Px(no,no);
-	Mat<double> ya_mcmc(niter,p,fill::zeros);
-	Mat<double> gamma_mcmc(niter,p,fill::ones);
+	Mat<double> ya_mcmc(p,niter,fill::zeros);
+	Mat<uword>  gamma_mcmc(p,niter,fill::ones);
 	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
+	Col<double> mu(p);
 	Col<double> ya(p);
 	Col<double> Z(p);
 	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
+	Col<double> d(p);
 	Col<double> Bmle(p);
+	Col<double> Bmle2(p);
+	Col<double> prob(p,fill::ones);
+	Col<double> priorprob(p);
+	Col<double> priorodds(p);
+	Col<double> odds(p);
+	Col<double> ldl(p);
+	Col<double> d2dl(p);
 	Col<uword> gamma(p,fill::ones);
 	Col<uword> inc_indices(p,fill::ones);
 
@@ -40,15 +56,19 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	std::copy(ryo, ryo + yo.n_elem, yo.memptr());
 	std::copy(rxo, rxo + xo.n_elem, xo.memptr());
 	std::copy(rlam, rlam + lam.n_elem, lam.memptr());
-
+	std::copy(rpriorprob, rpriorprob + priorprob.n_elem, priorprob.memptr());
 
 
 	//Create Xa//
-	xaxa=xo.t()*xo;
+	xoxo=xo.t()*xo;
+	xaxa=xoxo;
 	xaxa.diag()=vec(p,fill::zeros);
 	eig_sym(xaxa_eigenval,xaxa);
 	xaxa-=(xaxa_eigenval(0)-1)*eye(xaxa.n_rows,xaxa.n_cols);
 	xa=chol(xaxa);
+	D=xaxa+xoxo;
+	d=D.diag();
+
 
 	//Scale and Center Xo//
 	for (int c = 0; c < p; c++)
@@ -58,7 +78,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	}
 
 
-
 	//Initialize Parameters at MLE//
 	Px=xo*(xo.t()*xo).i()*xo.t();
 	phi=(no-p)/dot(yo,((Ino-Px)*yo));
@@ -66,21 +85,66 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	ya=xa*Bmle;
 
 
-	//Miscellaneous//
-	Lam=diagmat(lam);
-	yo=yo-mean(yo); //Center Yo
+	//C++11 PRNG//
 	std::mt19937 engine;
 	std::normal_distribution<> N(0,1);
+	std::gamma_distribution<> Ga(a,1);
+	std::uniform_real_distribution<> Un(0,1);
 
-
-	for (int t = 0; t < niter; t++)
+	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
+	yo=yo-mean(yo); //Center Yo
+	Lam=diagmat(lam);
+	for (int c = 0; c < p; c++)
 	{
-		//Run Gibbs Sampler//
-		inc_indices=find(gamma);
-		xagam=xa.cols(inc_indices);
-		Z.imbue( [&]() { return N(engine); } );
+		priorodds(c)=priorprob(c)/(1-priorprob(c));
+		ldl(c)=sqrt(lam(c)/(d(c)+lam(c)));
+		d2dl(c)=(d(c)*d(c))/(d(c)+lam(c));
+		Bmle2(c)=Bmle(c)*Bmle(c);
 	}
 
 
+	ya_mcmc.col(0)=ya;
+	phi_mcmc(0)=phi;
+	gamma_mcmc.col(0)=gamma;
+	for (int t = 1; t < niter; t++)
+	{
+		//Run Gibbs Sampler//
+		inc_indices=find(gamma);
+		Lamgam=Lam.submat(inc_indices,inc_indices);
+		xagam=xa.cols(inc_indices);
+		xogam=xo.cols(inc_indices);
 
+		//Draw Phi//
+		b=0.5*dot(yo,(Ino-xogam*(xogam.t()*xogam+Lamgam).i()*xogam.t())*yo);
+		phi=Ga(engine)/b;
+
+		//Draw Ya//
+		mu=xagam*(xogam.t()*xogam+Lamgam).i()*xogam.t()*yo;
+		E=Ip+xagam*(xogam.t()*xogam+Lamgam).i()*xagam.t();
+		L=chol(E);
+		Z.imbue( [&]() { return N(engine); } );
+		ya=mu+L*Z;
+
+		//Draw Gamma//
+		for (int i = 0; i < p; i++)
+		{
+			odds(i)=priorodds(i)*ldl(i)*exp(0.5*phi*d2dl(i)*Bmle2(i));
+			prob(i)=odds(i)/(1+odds(i));
+
+			if(Un(engine)<prob(i)){
+			gamma(i)=1;
+			}else{
+			gamma(i)=0;
+			}
+
+
+		}
+
+		gamma_mcmc.col(t)=gamma;
+		ya_mcmc.col(t)=ya;
+		phi_mcmc(t)=phi;
+	}
+
+	cout<<prob<<endl;
+	cout<<gamma<<endl;
 }
