@@ -6,7 +6,7 @@
 using namespace std;
 using namespace arma;
 
-extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob){
+extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *incprob){
 
 
 	//Define Variables//
@@ -154,7 +154,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 	for (int i = 0; i < p; ++i)
 	{
-		cout<< mean(prob_mcmc.row(i))<<endl;
-
+		incprob[i] = mean(prob_mcmc.row(i));
 	}
 }
