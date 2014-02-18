@@ -30,12 +30,14 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Mat<double> xogam;
 	Mat<double> Ino=eye(no,no);
 	Mat<double> Ip=eye(p,p);
+	Mat<double> P1(no,no);
 	Mat<double> Px(no,no);
 	Mat<double> ya_mcmc(p,niter,fill::zeros);
 	Mat<double> prob_mcmc(p,niter,fill::zeros);
 	Mat<uword>  gamma_mcmc(p,niter,fill::ones);
 	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
+	Col<double> yobar(no);
 	Col<double> mu(p);
 	Col<double> ya(p);
 	Col<double> Z(p);
@@ -61,10 +63,11 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	std::copy(rpriorprob, rpriorprob + priorprob.n_elem, priorprob.memptr());
 
 
+	P1.fill(1/no);
 	//Scale and Center Xo//
 	for (int c = 0; c < p; c++)
 	{
-		xo.col(c)-=mean(xo.col(c))*colvec(no,fill::ones); //Center
+		xo.col(c)-=P1*xo.col(c); //Center
 		xo.col(c)*=sqrt(no/dot(xo.col(c),xo.col(c))); // Scale
 	}
 
@@ -95,7 +98,8 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 
 	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
-	yo=yo-mean(yo); 
+	yobar=P1*yo;
+	yo=yo-yobar; 
 	Lam=diagmat(lam);
 	for (int c = 0; c < p; c++)
 	{
