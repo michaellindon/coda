@@ -10,10 +10,10 @@ b=c(1,0,1,0,1,1,0)
 xo%*%b
 yo=xo%*%b+rnorm(no,0,1)+10000
 p=length(b)
-niter=100000
+niter=10000
 lam=rep(1,p)
 priorprob=rep(0.5,p)
-incprob=rep(0,p)
+incprob=matrix(0,p,niter);
 phi=rep(0,niter)
 
 #C++oda
@@ -21,6 +21,9 @@ Sys.time()->start;
 res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi))
 print(Sys.time()-start);
 mean(res[[9]])
+incprob=as.vector(res[[8]])
+incprob=matrix(incprob,p,niter)
+incprob=apply(incprob,1,mean)
 
 #Roda
 simdata = data.frame(xo,yo)
