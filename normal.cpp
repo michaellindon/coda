@@ -37,6 +37,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Mat<uword>  gamma_mcmc(p,niter,fill::ones);
 	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
+	Col<double> one(no,fill::ones);
 	Col<double> yobar(no);
 	Col<double> mu(p);
 	Col<double> ya(p);
@@ -63,13 +64,16 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	std::copy(rpriorprob, rpriorprob + priorprob.n_elem, priorprob.memptr());
 
 
-	P1.fill(1/no);
+	P1=one*(one.t()*one).i()*one.t();
+	//P1.fill((double)(1/no)); This doesn't work
 	//Scale and Center Xo//
 	for (int c = 0; c < p; c++)
 	{
-		xo.col(c)-=P1*xo.col(c); //Center
+		xo.col(c)=xo.col(c)-P1*xo.col(c); //Center
 		xo.col(c)*=sqrt(no/dot(xo.col(c),xo.col(c))); // Scale
+
 	}
+	
 
 
 	//Create Xa//
@@ -85,7 +89,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 	//Initialize Parameters at MLE//
 	Px=xo*(xoxo).i()*xo.t();
-	phi=(no-p)/dot(yo,((Ino-Px)*yo));
+	phi=(no-p)/dot(yo,((Ino-P1-Px)*yo));
 	Bmle=(xoxo).i()*xo.t()*yo;
 	ya=xa*Bmle;
 
@@ -99,7 +103,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
 	yobar=P1*yo;
-	yo=yo-yobar; 
+	//yo=yo-yobar; 
 	Lam=diagmat(lam);
 	for (int c = 0; c < p; c++)
 	{
@@ -123,9 +127,10 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		xagam=xa.cols(inc_indices);
 		xogam=xo.cols(inc_indices);
 		xoxogam=xoxo.submat(inc_indices,inc_indices);
+		Px=xogam*xoxogam.i()*xogam.t();
 
 		//Draw Phi//
-		b=0.5*dot(yo,(Ino-xogam*(xoxogam+Lamgam).i()*xogam.t())*yo);
+		b=0.5*dot(yo,((Ino-P1-xogam*(xoxogam+Lamgam).i()*xogam.t())*yo));
 		phi=Ga(engine)/b;
 
 		//Draw Ya//
