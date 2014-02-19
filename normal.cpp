@@ -71,10 +71,8 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	{
 		xo.col(c)=xo.col(c)-P1*xo.col(c); //Center
 		xo.col(c)*=sqrt(no/dot(xo.col(c),xo.col(c))); // Scale
-
 	}
 	
-
 
 	//Create Xa//
 	xoxo=xo.t()*xo;
