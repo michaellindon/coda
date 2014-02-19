@@ -4,20 +4,23 @@ dyn.load("normal.so")
 set.seed(1)
 no=200
 foo=rnorm(no,0,1)
-sd=1
+sd=3
 xo=cbind(foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd))
 b=c(1,0,1,0,1,1,0)
 xo%*%b
-yo=xo%*%b+rnorm(no,0,10)
+yo=xo%*%b+rnorm(no,0,1)+10000
 p=length(b)
-niter=10000
-lam=rep(1.11,p)
+niter=100000
+lam=rep(1,p)
 priorprob=rep(0.5,p)
+incprob=rep(0,p)
+phi=rep(0,niter)
 
 #C++oda
 Sys.time()->start;
-res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob))
+res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi))
 print(Sys.time()-start);
+mean(res[[9]])
 
 #Roda
 simdata = data.frame(xo,yo)
