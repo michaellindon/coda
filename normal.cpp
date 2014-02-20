@@ -38,7 +38,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
 	Col<double> one(no,fill::ones);
-	Col<double> yobar(no);
 	Col<double> mu(p);
 	Col<double> ya(p);
 	Col<double> Z(p);
@@ -100,8 +99,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 
 	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
-	yobar=P1*yo;
-	//yo=yo-yobar; 
 	Lam=diagmat(lam);
 	for (int c = 0; c < p; c++)
 	{
@@ -128,7 +125,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		Px=xogam*xoxogam.i()*xogam.t();
 
 		//Draw Phi//
-		b=0.5*dot(yo,((Ino-P1-xogam*(xoxogam+Lamgam).i()*xogam.t())*yo));
+		b=0.5*as_scalar(yo.t()*(Ino-P1-xogam*(xoxogam+Lamgam).i()*xogam.t())*yo);
 		phi=Ga(engine)/b;
 
 		//Draw Ya//
