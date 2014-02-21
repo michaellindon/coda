@@ -6,7 +6,7 @@
 using namespace std;
 using namespace arma;
 
-extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rya){
+extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rya, double *rxa){
 
 
 	//Define Variables//
@@ -74,13 +74,14 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 	//Create Xa//
 	xoxo=xo.t()*xo;
-	xaxa=xoxo;
+	xaxa=(-1)*xoxo;
 	xaxa.diag()=vec(p,fill::zeros);
 	eig_sym(xaxa_eigenval,xaxa);
 	xaxa-=(xaxa_eigenval(0)-0.001)*eye(xaxa.n_rows,xaxa.n_cols);
 	xa=chol(xaxa);
 	D=xaxa+xoxo;
 	d=D.diag();
+	cout << D << endl;
 
 
 	//Initialize Parameters at MLE//
@@ -162,4 +163,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	std::copy(phi_mcmc.memptr(), phi_mcmc.memptr() + phi_mcmc.n_elem, rphi);
 	std::copy(prob_mcmc.memptr(), prob_mcmc.memptr() + prob_mcmc.n_elem, rprobs);
 	std::copy(ya_mcmc.memptr(), ya_mcmc.memptr() + ya_mcmc.n_elem, rya);
+	std::copy(xa.memptr(), xa.memptr() + xa.n_elem, rxa);
+	cout << xa << endl;
 }
