@@ -14,16 +14,19 @@ niter=10000
 lam=rep(1,p)
 priorprob=rep(0.5,p)
 incprob=matrix(0,p,niter);
+ya=matrix(0,p,niter);
 phi=rep(0,niter)
 
 #C++oda
 Sys.time()->start;
-res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi))
+res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya))
 print(Sys.time()-start);
 mean(res[[9]])
 incprob=as.vector(res[[8]])
 incprob=matrix(incprob,p,niter)
 incprob=apply(incprob,1,mean)
+ya=as.vector(res[[10]])
+ya=matrix(ya,p,niter)
 
 #Roda
 simdata = data.frame(xo,yo)
