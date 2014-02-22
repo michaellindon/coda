@@ -50,7 +50,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Col<double> priorodds(p);
 	Col<double> odds(p);
 	Col<double> ldl(p);
-	Col<double> dl(p);
+	Col<double> d2dl(p);
 	Col<uword> gamma(p,fill::ones);
 	Col<uword> inc_indices(p,fill::ones);
 
@@ -69,25 +69,28 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	{
 		xo.col(c)=xo.col(c)-P1*xo.col(c); //Center
 		rscale[c]=sqrt(no/dot(xo.col(c),xo.col(c)));
-		xo.col(c)*=rscale[c];// Scale
+		xo.col(c)=xo.col(c)*rscale[c];// Scale
 	}
 	
 
 	//Create Xa//
 	xoxo=xo.t()*xo;
-	xaxa=(-1)*xoxo;
-	eig_sym(xaxa_eigenval,xaxa);
-	xaxa.diag()=(0.1+abs(xaxa_eigenval(0)))*vec(p,fill::ones);
+	xaxa=(-1)*xoxo; //Force off diagonal elements of xaxa to be (-1)* off diagonal elements of xoxo
+	xaxa.diag()=vec(p,fill::zeros); //Set the diagonal entries of xaxa to be zero
+	eig_sym(xaxa_eigenval,xaxa); //Calculate the most negative eigenvalue
+	xaxa.diag()=(0.01+abs(xaxa_eigenval(0)))*vec(p,fill::ones);
 	xa=chol(xaxa);
 	D=xaxa+xoxo;
 	d=D.diag();
 
+	cout << D << endl;
 
 	//Initialize Parameters at MLE//
 	Px=xo*(xoxo).i()*xo.t();
-	phi=(no-p)/dot(yo,((Ino-P1-Px)*yo));
+	phi=(no-1)/dot(yo,((Ino-P1-Px)*yo));
 	Bmle=(xoxo).i()*xo.t()*yo;
 	ya=xa*Bmle;
+	cout << ya << endl;
 
 
 	//C++11 PRNG//
@@ -103,7 +106,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	{
 		priorodds(c)=priorprob(c)/(1-priorprob(c));
 		ldl(c)=sqrt(lam(c)/(d(c)+lam(c)));
-		dl(c)=1/(d(c)+lam(c));
+		d2dl(c)=(d(c)*d(c))/(d(c)+lam(c));
 	}
 
 
@@ -123,7 +126,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		Px=xogam*xoxogam.i()*xogam.t();
 
 		//Draw Phi//
-		b=0.5*as_scalar(yo.t()*(Ino-P1-xogam*(xoxogam+Lamgam).i()*xogam.t())*yo);
+		b=0.5*dot(yo,(Ino-P1-xogam*(xoxogam+Lamgam).i()*xogam.t())*yo);
 		phi=Ga(engine)/b;
 
 		//Draw Ya//
@@ -137,7 +140,8 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		//Draw Gamma//
 		for (int i = 0; i < p; i++)
 		{
-			odds(i)=priorodds(i)*ldl(i)*exp(as_scalar(0.5*phi*dl(i)*(yo.t()*xo.col(i)+ya.t()*xa.col(i))*(yo.t()*xo.col(i)+ya.t()*xa.col(i))));
+			Bmle(i)=(1/d(i))*(dot(xo.col(i),yo)+dot(xa.col(i),ya));
+			odds(i)=priorodds(i)*ldl(i)*exp(0.5*phi*d2dl(i)*Bmle(i)*Bmle(i));
 			prob(i)=odds(i)/(1+odds(i));
 			if(prob(i)!=prob(i)) prob(i)=1;	 //Catch NaN
 
