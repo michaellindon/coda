@@ -6,7 +6,7 @@
 using namespace std;
 using namespace arma;
 
-extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rya, double *rxa){
+extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rya, double *rxa, double *rscale, unsigned int *rgamma){
 
 
 	//Define Variables//
@@ -68,20 +68,19 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	for (int c = 0; c < p; c++)
 	{
 		xo.col(c)=xo.col(c)-P1*xo.col(c); //Center
-		xo.col(c)*=sqrt(no/dot(xo.col(c),xo.col(c))); // Scale
+		rscale[c]=sqrt(no/dot(xo.col(c),xo.col(c)));
+		xo.col(c)*=rscale[c];// Scale
 	}
 	
 
 	//Create Xa//
 	xoxo=xo.t()*xo;
 	xaxa=(-1)*xoxo;
-	xaxa.diag()=vec(p,fill::zeros);
 	eig_sym(xaxa_eigenval,xaxa);
-	xaxa-=(xaxa_eigenval(0)-0.001)*eye(xaxa.n_rows,xaxa.n_cols);
+	xaxa.diag()=(0.1+abs(xaxa_eigenval(0)))*vec(p,fill::ones);
 	xa=chol(xaxa);
 	D=xaxa+xoxo;
 	d=D.diag();
-	cout << D << endl;
 
 
 	//Initialize Parameters at MLE//
@@ -130,6 +129,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		//Draw Ya//
 		mu=xagam*(xoxogam+Lamgam).i()*xogam.t()*yo;
 		E=Ip+xagam*(xoxogam+Lamgam).i()*xagam.t();
+		E=E/phi;
 		L=chol(E);
 		Z.imbue( [&]() { return N(engine); } );
 		ya=mu+L*Z;
@@ -155,14 +155,10 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		phi_mcmc(t)=phi;
 	}
 
-	       for (int i = 0; i < p; ++i)
-		       {
-			              cout <<  mean(prob_mcmc.row(i)) << endl;
-			       }
 
 	std::copy(phi_mcmc.memptr(), phi_mcmc.memptr() + phi_mcmc.n_elem, rphi);
 	std::copy(prob_mcmc.memptr(), prob_mcmc.memptr() + prob_mcmc.n_elem, rprobs);
+	std::copy(gamma_mcmc.memptr(), gamma_mcmc.memptr() + gamma_mcmc.n_elem, rgamma);
 	std::copy(ya_mcmc.memptr(), ya_mcmc.memptr() + ya_mcmc.n_elem, rya);
 	std::copy(xa.memptr(), xa.memptr() + xa.n_elem, rxa);
-	cout << xa << endl;
 }
