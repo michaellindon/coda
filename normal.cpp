@@ -17,17 +17,17 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	int b;
 	double phi;
 	Mat<double> xa(p,p);
-	Mat<double> xagam;
+	Mat<double> xag;
 	Mat<double> xaxa(p,p);
 	Mat<double> xoxo(p,p);
-	Mat<double> xoxogam(p,p);
+	Mat<double> xoxog(p,p);
 	Mat<double> D(p,p);
 	Mat<double> Lam(p,p);
-	Mat<double> Lamgam(p,p);
+	Mat<double> Lamg(p,p);
 	Mat<double> xo(no,p);
 	Mat<double> E(p,p);
 	Mat<double> L(p,p);
-	Mat<double> xogam;
+	Mat<double> xog;
 	Mat<double> Ino=eye(no,no);
 	Mat<double> Ip=eye(p,p);
 	Mat<double> P1(no,no);
@@ -119,19 +119,18 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	{
 		//Form Submatrices
 		inc_indices=find(gamma);
-		Lamgam=Lam.submat(inc_indices,inc_indices);
-		xagam=xa.cols(inc_indices);
-		xogam=xo.cols(inc_indices);
-		xoxogam=xoxo.submat(inc_indices,inc_indices);
-		Px=xogam*xoxogam.i()*xogam.t();
+		Lamg=Lam.submat(inc_indices,inc_indices);
+		xag=xa.cols(inc_indices);
+		xog=xo.cols(inc_indices);
+		xoxog=xoxo.submat(inc_indices,inc_indices);
 
 		//Draw Phi//
-		b=0.5*dot(yo,(Ino-P1-xogam*(xoxogam+Lamgam).i()*xogam.t())*yo);
+		b=0.5*dot(yo,(Ino-P1-xog*(xoxog+Lamg).i()*xog.t())*yo);
 		phi=Ga(engine)/b;
 
 		//Draw Ya//
-		mu=xagam*(xoxogam+Lamgam).i()*xogam.t()*yo;
-		E=Ip+xagam*(xoxogam+Lamgam).i()*xagam.t();
+		mu=xag*(xoxog+Lamg).i()*xog.t()*yo;
+		E=Ip+xag*(xoxog+Lamg).i()*xag.t();
 		E=E/phi;
 		L=chol(E);
 		Z.imbue( [&]() { return N(engine); } );
