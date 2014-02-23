@@ -71,7 +71,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		rscale[c]=sqrt(no/dot(xo.col(c),xo.col(c)));
 		xo.col(c)=xo.col(c)*rscale[c];// Scale
 	}
-	
 
 	//Create Xa//
 	xoxo=xo.t()*xo;
@@ -83,7 +82,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	D=xaxa+xoxo;
 	d=D.diag();
 
-	cout << D << endl;
 
 	//Initialize Parameters at MLE//
 	Px=xo*(xoxo).i()*xo.t();
