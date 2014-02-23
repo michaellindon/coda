@@ -88,7 +88,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	phi=(no-1)/dot(yo,((Ino-P1-Px)*yo));
 	Bmle=(xoxo).i()*xo.t()*yo;
 	ya=xa*Bmle;
-	cout << ya << endl;
 
 
 	//C++11 PRNG//
