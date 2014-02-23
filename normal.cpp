@@ -99,11 +99,11 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
 	Lam=diagmat(lam);
-	for (int c = 0; c < p; c++)
+	for (int i = 0; i < p; i++)
 	{
-		priorodds(c)=priorprob(c)/(1-priorprob(c));
-		ldl(c)=sqrt(lam(c)/(d(c)+lam(c)));
-		d2dl(c)=(d(c)*d(c))/(d(c)+lam(c));
+		priorodds(i)=priorprob(i)/(1-priorprob(i));
+		ldl(i)=sqrt(lam(i)/(d(i)+lam(i)));
+		d2dl(i)=(d(i)*d(i))/(d(i)+lam(i));
 	}
 
 
