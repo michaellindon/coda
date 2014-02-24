@@ -137,9 +137,9 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		for (int i = 0; i < p; i++)
 		{
 			Bmle(i)=(1/d(i))*(dot(xo.col(i),yo)+dot(xa.col(i),ya));
-			odds(i)=priorodds(i)*ldl(i)*exp(0.5*phi*d2dl(i)*Bmle(i)*Bmle(i));
+			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*d2dl(i)*Bmle(i)*Bmle(i));
 			prob(i)=odds(i)/(1+odds(i));
-			if(prob(i)!=prob(i)) prob(i)=1;	 //Catch NaN
+			//if(prob(i)!=prob(i)) prob(i)=1;	 //Catch NaN
 
 			if(Un(engine)<prob(i)){
 				gamma(i)=1;
