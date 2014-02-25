@@ -133,7 +133,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		E=E/phi;
 		L=chol(E);
 		Z.imbue( [&]() { return N(engine); } );
-		ya=mu+L*Z;
+		ya=mu+L.t()*Z;
 
 		//Draw Gamma//
 		for (int i = 0; i < p; i++)
