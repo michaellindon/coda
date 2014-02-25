@@ -45,6 +45,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Col<double> lam(p);
 	Col<double> d(p);
 	Col<double> Bmle(p);
+	Col<double> xoyo(p);
 	Col<double> prob(p,fill::ones);
 	Col<double> priorprob(p);
 	Col<double> priorodds(p);
@@ -112,6 +113,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	phi_mcmc(0)=phi;
 	gamma_mcmc.col(0)=gamma;
 	prob_mcmc.col(0)=prob;
+	xoyo=xo.t()*yo;
 	for (int t = 1; t < niter; t++)
 	{
 		//Form Submatrices
@@ -136,7 +138,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		//Draw Gamma//
 		for (int i = 0; i < p; i++)
 		{
-			Bmle(i)=(1/d(i))*(dot(xo.col(i),yo)+dot(xa.col(i),ya));
+			Bmle(i)=(1/d(i))*(xoyo(i)+dot(xa.col(i),ya));
 			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*d2dl(i)*Bmle(i)*Bmle(i));
 			prob(i)=odds(i)/(1+odds(i));
 			//if(prob(i)!=prob(i)) prob(i)=1;	 //Catch NaN
