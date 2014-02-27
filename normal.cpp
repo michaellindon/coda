@@ -78,7 +78,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	xaxa=(-1)*xoxo; //Force off diagonal elements of xaxa to be (-1)* off diagonal elements of xoxo
 	xaxa.diag()=vec(p,fill::zeros); //Set the diagonal entries of xaxa to be zero
 	eig_sym(xaxa_eigenval,xaxa); //Calculate the most negative eigenvalue
-	xaxa.diag()=(0.01+abs(xaxa_eigenval(0)))*vec(p,fill::ones);
+	xaxa.diag()=(0.001+abs(xaxa_eigenval(0)))*vec(p,fill::ones);
 	xa=chol(xaxa);
 	D=xaxa+xoxo;
 	d=D.diag();
