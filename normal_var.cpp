@@ -37,8 +37,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 	Col<double> phi_trace(niter,fill::ones);
 	Col<double> yo(no);
 	Col<double> one(no,fill::ones);
-	Col<double> mu(p);
-	Col<double> ya(p);
+	Col<double> mu(p,fill::zeros);
 	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
 	Col<double> d(p);
@@ -83,11 +82,9 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 	//Initialize Parameters at MLE//
 	Px=xo*(xoxo).i()*xo.t();
 	phi=(no-1)/dot(yo,((Ino-P1-Px)*yo));
-	Bmle=(xoxo).i()*xo.t()*yo;
-	ya=xa*Bmle;
 
 
-	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
+	//Single Instance Computations//
 	Lam=diagmat(lam);
 	for (int i = 0; i < p; i++)
 	{
@@ -97,7 +94,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 	}
 
 
-	//Run Gibbs Sampler//
+	//Run Variational//
 	xoyo=xo.t()*yo;
 	xcxcLami=(D+Lam).i();
 	for (int t = 1; t < niter; t++)
