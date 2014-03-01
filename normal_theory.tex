@@ -1,0 +1,110 @@
+\documentclass[9pt]{article}
+\usepackage[letterpaper, left=.8in, top=0.9in, right=.8in, bottom=0.70in,nohead,includefoot, verbose, ignoremp]{geometry}
+\usepackage{charter} %choose default font ... your choice here % {mathptmx} % mathrsfs} % mathptmx} %mathpple} %mathpazo}
+\usepackage{enumerate} % for different labels in numbered lists 
+\usepackage{latexsym,amssymb,amsmath,amsfonts,graphicx,color,fancyvrb,amsthm,enumerate,natbib}
+\usepackage[pdftex,pagebackref=true]{hyperref}
+\usepackage[svgnames,dvipsnames,x11names]{xcolor}
+\usepackage{float}
+\usepackage{pdfpages}
+\hypersetup{
+colorlinks,%
+linkcolor=RoyalBlue2,  % colour of links to eqns, tables, sections, etc
+urlcolor=Sienna4,   % colour of unboxed URLs
+citecolor=RoyalBlue2  % colour of citations linked in text
+}
+\pagestyle{empty} % no page number on front page
+%\renewcommand{\includegraphics}{}  % use this to suppress inclusion of figs for proofing
+
+% custom definitions ...
+\def\eq#1{equation (\ref{#1})}
+\def\pdf{p.d.f.\ } \def\cdf{c.d.f.\ }
+\def\pdfs{p.d.f.s} \def\cdfs{c.d.f.s}
+\def\mgf{m.g.f.\ } \def\mgfs{m.g.f.s\ }
+\def\ci{\perp\!\!\!\perp}                        % conditional independence symbol
+\def\beginmat{ \left( \begin{array} }
+\def\endmat{ \end{array} \right) }
+\def\diag{{\rm diag}}
+\def\log{{\rm log}}
+\def\tr{{\rm tr}}
+%
+
+%% Document starts here ...
+%%
+\newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}
+
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+\begin{document}
+\vspace{-1in}
+\title{\bf ODA SA/AA EM}
+\maketitle \centerline{{\color{RoyalBlue2}{Michael Lindon}}}\bigskip
+\subsection*{Model}
+\begin{align}
+	\begin{bmatrix}
+		Y_{o}\\
+		Y_{a}\\
+	\end{bmatrix}=
+	\begin{bmatrix}
+		1\\
+		0\\
+	\end{bmatrix}\alpha+\begin{bmatrix}
+		X_{o\gamma}\\
+		X_{a\gamma}\\
+	\end{bmatrix}\beta+\varepsilon
+	\label{}
+\end{align}
+\subsection*{Integrated Likelihood}
+\label{sub:integrated_likelihood}
+\begin{align*}
+	f(Y_{o},Y_{a}|\phi,\gamma)=\int \int f(Y_{o},Y_{a}|\phi,\gamma,\alpha,\beta)\pi(\alpha)\pi(\beta|\phi,\gamma)d\alpha d\beta \\
+\end{align*}
+Let $P_{10}$ be the orthogonal projection onto the space spanned by $\begin{bmatrix}
+	1\\
+	0\\
+\end{bmatrix}$ and $P_{X_{\gamma}}$ be the orthogonal projection onto the space spanned by the columns of $X_{c\gamma}=\begin{pmatrix}
+	X_{o\gamma}\\
+	X_{a\gamma}\\
+\end{pmatrix}$
+Then the likelihood can be decomposed as 
+\begin{align*}
+	f(Y_{o},Y_{a}|\phi,\gamma,\alpha,\beta)&\propto \phi^{\frac{no+na}{2}}e^{-\frac{\phi}{2}(\bar{Y}_{o}-\alpha)^{2}}e^{-\frac{\phi}{2}(P_{X_{\gamma}}Y_{c}-X_{c\gamma}\beta)^{T}(P_{X_{\gamma}}Y_{c}-X_{c\gamma}\beta)}e^{-\frac{\phi}{2}Y_{c}^{T}(I-P_{10}-P_{X_{\gamma}})Y_{c}}\\
+	f(Y_{o},Y_{a}|\phi,\gamma,\beta)&\propto \phi^{\frac{no+na-1}{2}}e^{-\frac{\phi}{2}(X_{c\gamma}^{-1}P_{X_{\gamma}}Y_{c}-\beta)^{T}X_{c\gamma}^{T}X_{c\gamma}(X_{c\gamma}^{-1}P_{X_{\gamma}}Y_{c}-\beta)}e^{-\frac{\phi}{2}Y_{c}^{T}(I-P_{10}-P_{X_{\gamma}})Y_{c}}\\
+	&\propto \phi^{\frac{no+na-1}{2}}e^{-\frac{\phi}{2}(\beta^{T}X_{c\gamma}^{T}X_{c\gamma}\beta+Y_{c}^{T}P_{X_{\gamma}}Y_{c}-2\beta^{T}X_{c\gamma}^{T}P_{X_{c\gamma}Y_{c}})}e^{-\frac{\phi}{2}Y_{c}^{T}(I-P_{10}-P_{X_{\gamma}})Y_{c}}\\
+	&\propto \phi^{\frac{no+na-1}{2}}e^{-\frac{\phi}{2}(\beta^{T}X_{c\gamma}^{T}X_{c\gamma}\beta-2\beta^{T}X_{c\gamma}^{T}P_{X_{c\gamma}}Y_{c})}e^{-\frac{\phi}{2}Y_{c}^{T}(I-P_{10})Y_{c}}\\
+	f(Y_{o},Y_{a}|\phi,\gamma,\beta)\pi(\beta|\phi,\gamma)	&\propto \phi^{\frac{no+na-1}{2}}\phi^{\frac{na}{2}}|\Lambda_{\gamma}|^{\frac{1}{2}}e^{-\frac{\phi}{2}(\beta^{T}(\Lambda_{\gamma}+X_{c\gamma}^{T}X_{c\gamma})\beta-2\beta^{T}X_{c\gamma}^{T}Y_{c})}e^{-\frac{\phi}{2}Y_{c}^{T}(I-P_{10})Y_{c}}\\
+	&\propto \phi^{\frac{no+na-1}{2}}\phi^{\frac{na}{2}}|\Lambda_{\gamma}|^{\frac{1}{2}}e^{-\frac{\phi}{2}(\beta-\tilde{\beta}_{\gamma})^{T}\tilde{\Lambda}_{\gamma}(\beta-\tilde{\beta}_{\gamma})}e^{\frac{\phi}{2}\tilde{\beta_{\gamma}}^{T}\tilde{\Lambda}_{\gamma}\tilde{\beta_{\gamma}}}e^{-\frac{\phi}{2}Y_{c}^{T}(I-P_{10})Y_{c}}\\
+\end{align*}
+where $\tilde{\Lambda}_{\gamma}=X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma}$ and $\tilde{\beta}_{\gamma}=(X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma})^{-1}X_{c\gamma}^{T}Y_{c}$. Integrating out $\beta$ yields the desire integrated likelihood.
+\begin{align*}
+	f(Y_{o},Y_{a}|\phi,\gamma) \propto \phi^{\frac{no+na-1}{2}}\left( \frac{|\Lambda_{\gamma}|}{|\tilde{\Lambda}_{\gamma}|}\right) ^{\frac{1}{2}}e^{-\frac{\phi}{2}Y_{c}^{T}(I-P_{10}-X_{c\gamma}(X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma})X_{c\gamma}^{T})Y_{c}}\\
+\end{align*}
+write the precision matrix as $A=(I-P_{10}-X_{c\gamma}(X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma})^{-1}X_{c\gamma}^{T})$, then 
+	\begin{align*}
+		A_{oo}&=(I-P_{1}-X_{o\gamma}(X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma})^{-1}X_{o\gamma}^{T})\\
+		A_{oa}&=-X_{o\gamma}(X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma})^{-1}X_{a\gamma}^{T}\\
+		A_{ao}&=-X_{a\gamma}(X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma})^{-1}X_{o\gamma}^{T}\\
+		A_{aa}&=(I-X_{a\gamma}(X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma})^{-1}X_{a\gamma}^{T})\\
+	\end{align*}
+	Also writing the covariance matrix as $V=(I-P_{10}-X_{c\gamma}(X_{c\gamma}^{T}X_{c\gamma}+\Lambda_{\gamma})^{-1}X_{c\gamma}^{T})^{-1}=I-P_{10}+X_{c\gamma}\Lambda_{\gamma}^{-1}X_{c\gamma}^{T}$, then
+	\begin{align*}
+		V_{oo}&=I-P_{1}+X_{o\gamma}\Lambda_{\gamma}^{-1}X_{o\gamma}^{T}\\
+		V_{oa}&=X_{o\gamma}\Lambda_{\gamma}^{-1}X_{a\gamma}^{T}\\
+		V_{ao}&=X_{a\gamma}\Lambda_{\gamma}^{-1}X_{o\gamma}^{T}\\
+		V_{aa}&=I+X_{a\gamma}\Lambda_{\gamma}^{-1}X_{a\gamma}^{T}\\
+	\end{align*}
+ The bilinear form can be rearranged as
+\begin{align*}
+	Y_{a}^{T}A_{aa}Y_{a}+2Y_{a}^{T}A_{ao}Y_{o}+Y_{o}^{T}A_{oo}Y_{o}=(Y_{a}+A_{aa}^{-1}A_{ao}Y_{o})^{T}A_{aa}(Y_{a}+A_{aa}^{-1}A_{ao}Y_{o})+Y_{o}(A_{oo}+A_{oa}A_{aa}^{-1}A_{oa})Y_{o}
+\end{align*}
+therefore.
+\begin{align*}
+	f(Y_{o},Y_{a}|\phi,\gamma) \propto \left( \frac{|\Lambda_{\gamma}|}{|\tilde{\Lambda}_{\gamma}|}\right) ^{\frac{1}{2}} \phi^{\frac{no-1}{2}}e^{-\frac{\phi}{2}Y_{o}(A_{oo}+A_{oa}A_{aa}^{-1}A_{oa})Y_{o}}\phi^{\frac{na}{2}}e^{-\frac{\phi}{2}(Y_{a}+A_{aa}^{-1}A_{ao}Y_{o})^{T}A_{aa}(Y_{a}+A_{aa}^{-1}A_{ao}Y_{o})}\\
+\end{align*}
+It follows that the full conditional for $\phi$ is gamma distributed with $a=\frac{no-1}{2}$ and $2b=Y_{o}^{T}(A_{oo}+A_{oa}A_{aa}^{-1}A_{ao})Y_{o}=Y_{o}^{T}V_{oo}^{-1}Y_{o}=Y_{o}^{T}(I-P_{1}-X_{o\gamma}(X_{o\gamma}^{T}X_{o\gamma}+\Lambda_{\gamma})^{-1}X_{o\gamma}^{T})Y_{o}$\\
+The full conditional for $Y_{a}$ is normally distributed with variance matrix $I+X_{a\gamma}(X_{o\gamma}^{T}X_{o\gamma}+\Lambda)^{-1}X_{a\gamma}^{T}$ and mean $X_{a\gamma}(X_{o\gamma}^{T}X_{o\gamma}+\Lambda_{\gamma})^{-1}X_{o\gamma}^{T}Y_{o}$
+\begin{align*}
+	\phi|Y_{o},\gamma \sim Ga (\frac{no-1}{2}, \frac{Y_{o}^{T}(I-P_{1}-X_{o\gamma}(X_{o\gamma}^{T}X_{o\gamma}+\Lambda_{\gamma})^{-1}X_{o\gamma}^{T})Y_{o}}{2})\\
+	Y_{a}|Y_{o},\phi,\gamma \sim N (X_{a\gamma}(X_{o\gamma}^{T}X_{o\gamma}+\Lambda_{\gamma})^{-1}X_{o\gamma}^{T}Y_{o},I+X_{a\gamma}(X_{o\gamma}^{T}X_{o\gamma}+\Lambda)^{-1}X_{a\gamma}^{T})
+\end{align*}
+% subsection integrated_likelihood (end)
+\end{document}
