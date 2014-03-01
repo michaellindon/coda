@@ -45,7 +45,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
 	Col<double> d(p);
-	Col<double> Bmle(p);
+	Col<double> Bols(p);
 	Col<double> xoyo(p);
 	Col<double> prob(p,fill::ones);
 	Col<double> priorprob(p);
@@ -88,8 +88,8 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	//Initialize Parameters at MLE//
 	Px=xo*(xoxo).i()*xo.t();
 	phi=(no-1)/dot(yo,((Ino-P1-Px)*yo));
-	Bmle=(xoxo).i()*xo.t()*yo;
-	ya=xa*Bmle;
+	Bols=(xoxo).i()*xo.t()*yo;
+	ya=xa*Bols;
 
 
 	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
@@ -132,8 +132,8 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		//Draw Gamma//
 		for (int i = 0; i < p; ++i)
 		{
-			Bmle(i)=(1/d(i))*(xoyo(i)+dot(xa.col(i),ya));
-			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*dli(i)*d(i)*d(i)*Bmle(i)*Bmle(i));
+			Bols(i)=(1/d(i))*(xoyo(i)+dot(xa.col(i),ya));
+			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*dli(i)*d(i)*d(i)*Bols(i)*Bols(i));
 			prob(i)=odds(i)/(1+odds(i));
 			//if(prob(i)!=prob(i)) prob(i)=1;	 //Catch NaN
 
