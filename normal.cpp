@@ -52,7 +52,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Col<double> priorodds(p);
 	Col<double> odds(p);
 	Col<double> ldl(p);
-	Col<double> d2dl(p);
+	Col<double> dli(p);
 	Col<uword> gamma(p,fill::ones);
 	Col<uword> inc_indices(p,fill::ones);
 
@@ -98,7 +98,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	{
 		priorodds(i)=priorprob(i)/(1-priorprob(i));
 		ldl(i)=sqrt(lam(i)/(d(i)+lam(i)));
-		d2dl(i)=(d(i)*d(i))/(d(i)+lam(i));
+		dli(i)=1/(d(i)+lam(i));
 	}
 
 
@@ -119,7 +119,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 		//Draw Phi//
 		b=0.5*dot(yo,(Ino-P1-xog*(xoxog+Lamg).i()*xog.t())*yo);
-		phi=rgamma(a,(1/b));
+		phi=rgamma(a,(1/b)); //rgamma uses scale
 
 		//Draw Ya//
 		mu=xag*(xoxog+Lamg).i()*xog.t()*yo;
@@ -133,7 +133,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 		for (int i = 0; i < p; ++i)
 		{
 			Bmle(i)=(1/d(i))*(xoyo(i)+dot(xa.col(i),ya));
-			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*d2dl(i)*Bmle(i)*Bmle(i));
+			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*dli(i)*d(i)*d(i)*Bmle(i)*Bmle(i));
 			prob(i)=odds(i)/(1+odds(i));
 			//if(prob(i)!=prob(i)) prob(i)=1;	 //Catch NaN
 
