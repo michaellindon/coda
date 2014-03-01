@@ -1,20 +1,21 @@
+#define MATHLIB_STANDALONE
 #include <cstdlib>
 #include <iostream>
 #include <armadillo>
-#include <random>
+#include "Rmath.h"
 
 using namespace std;
 using namespace arma;
 
-extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rya, double *rxa, double *rscale, unsigned int *rgamma){
+extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rya, double *rxa, double *rscale, unsigned int *rgam){
 
 
 	//Define Variables//
 	int niter=*rniter;
 	int p=*rp;
 	int no=*rno;
-	int a=(no-1)/2;
-	int b;
+	double a=(no-1)/2;
+	double b;
 	double phi;
 	Mat<double> xa(p,p);
 	Mat<double> xag;
@@ -66,7 +67,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	P1=one*(one.t()*one).i()*one.t();
 	//P1.fill((double)(1/no)); This doesn't work
 	//Scale and Center Xo//
-	for (int c = 0; c < p; c++)
+	for (int c = 0; c < p; ++c)
 	{
 		xo.col(c)=xo.col(c)-P1*xo.col(c); //Center
 		rscale[c]=sqrt(no/dot(xo.col(c),xo.col(c)));
@@ -91,16 +92,9 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	ya=xa*Bmle;
 
 
-	//C++11 PRNG//
-	std::mt19937 engine;
-	std::normal_distribution<> N(0,1);
-	std::gamma_distribution<> Ga(a,1);
-	std::uniform_real_distribution<> Un(0,1);
-
-
 	//Pre-Gibbs Computations Needn't Be Computed Every Iteration//
 	Lam=diagmat(lam);
-	for (int i = 0; i < p; i++)
+	for (int i = 0; i < p; ++i)
 	{
 		priorodds(i)=priorprob(i)/(1-priorprob(i));
 		ldl(i)=sqrt(lam(i)/(d(i)+lam(i)));
@@ -114,7 +108,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	gamma_mcmc.col(0)=gamma;
 	prob_mcmc.col(0)=prob;
 	xoyo=xo.t()*yo;
-	for (int t = 1; t < niter; t++)
+	for (int t = 1; t < niter; ++t)
 	{
 		//Form Submatrices
 		inc_indices=find(gamma);
@@ -125,25 +119,25 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 		//Draw Phi//
 		b=0.5*dot(yo,(Ino-P1-xog*(xoxog+Lamg).i()*xog.t())*yo);
-		phi=Ga(engine)/b;
+		phi=rgamma(a,(1/b));
 
 		//Draw Ya//
 		mu=xag*(xoxog+Lamg).i()*xog.t()*yo;
 		E=Ip+xag*(xoxog+Lamg).i()*xag.t();
 		E=E/phi;
 		L=chol(E);
-		Z.imbue( [&]() { return N(engine); } );
+		for (int i = 0; i < p; ++i) Z(i)=rnorm(0,1);
 		ya=mu+L.t()*Z;
 
 		//Draw Gamma//
-		for (int i = 0; i < p; i++)
+		for (int i = 0; i < p; ++i)
 		{
 			Bmle(i)=(1/d(i))*(xoyo(i)+dot(xa.col(i),ya));
 			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*d2dl(i)*Bmle(i)*Bmle(i));
 			prob(i)=odds(i)/(1+odds(i));
 			//if(prob(i)!=prob(i)) prob(i)=1;	 //Catch NaN
 
-			if(Un(engine)<prob(i)){
+			if(runif(0,1)<prob(i)){
 				gamma(i)=1;
 			}else{
 				gamma(i)=0;
@@ -160,7 +154,7 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 	std::copy(phi_mcmc.memptr(), phi_mcmc.memptr() + phi_mcmc.n_elem, rphi);
 	std::copy(prob_mcmc.memptr(), prob_mcmc.memptr() + prob_mcmc.n_elem, rprobs);
-	std::copy(gamma_mcmc.memptr(), gamma_mcmc.memptr() + gamma_mcmc.n_elem, rgamma);
+	std::copy(gamma_mcmc.memptr(), gamma_mcmc.memptr() + gamma_mcmc.n_elem, rgam);
 	std::copy(ya_mcmc.memptr(), ya_mcmc.memptr() + ya_mcmc.n_elem, rya);
 	std::copy(xa.memptr(), xa.memptr() + xa.n_elem, rxa);
 }
