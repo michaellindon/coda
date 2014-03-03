@@ -7,17 +7,18 @@
 using namespace std;
 using namespace arma;
 
-extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rya, double *rxa, double *rscale, unsigned int *rgam){
+extern "C" void normal(double *ryo, double *rxo, int *rno, int *rna, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rya, double *rxa, double *rscale, unsigned int *rgam){
 
 
 	//Define Variables//
 	int niter=*rniter;
 	int p=*rp;
 	int no=*rno;
+	int na=*rna;
 	double a=(no-1)/2;
 	double b;
 	double phi;
-	Mat<double> xa(p,p);
+	Mat<double> xa(na,p);
 	Mat<double> xag;
 	Mat<double> xaxa(p,p);
 	Mat<double> xoxo(p,p);
@@ -26,22 +27,22 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 	Mat<double> Lam(p,p);
 	Mat<double> Lamg(p,p);
 	Mat<double> xo(no,p);
-	Mat<double> E(p,p);
-	Mat<double> L(p,p);
+	Mat<double> E(na,na);
+	Mat<double> L(na,na);
 	Mat<double> xog;
 	Mat<double> Ino=eye(no,no);
-	Mat<double> Ip=eye(p,p);
+	Mat<double> Ina=eye(na,na);
 	Mat<double> P1(no,no);
 	Mat<double> Px(no,no);
-	Mat<double> ya_mcmc(p,niter,fill::zeros);
+	Mat<double> ya_mcmc(na,niter,fill::zeros);
 	Mat<double> prob_mcmc(p,niter,fill::zeros);
 	Mat<uword>  gamma_mcmc(p,niter,fill::ones);
 	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
 	Col<double> one(no,fill::ones);
-	Col<double> mu(p);
-	Col<double> ya(p);
-	Col<double> Z(p);
+	Col<double> mu(na);
+	Col<double> ya(na);
+	Col<double> Z(na);
 	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
 	Col<double> d(p);
@@ -123,10 +124,10 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rp, double *rlam
 
 		//Draw Ya//
 		mu=xag*(xoxog+Lamg).i()*xog.t()*yo;
-		E=Ip+xag*(xoxog+Lamg).i()*xag.t();
+		E=Ina+xag*(xoxog+Lamg).i()*xag.t();
 		E=E/phi;
 		L=chol(E);
-		for (int i = 0; i < p; ++i) Z(i)=rnorm(0,1);
+		for (int i = 0; i < na; ++i) Z(i)=rnorm(0,1);
 		ya=mu+L.t()*Z;
 
 		//Draw Gamma//
