@@ -1,2 +1,1 @@
-PKG_LIBS='-larmadillo'
-PKG_CXXFLAGS='-std=c++11'
+PKG_LIBS=-larmadillo -lRmath
