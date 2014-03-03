@@ -5,17 +5,18 @@
 using namespace std;
 using namespace arma;
 
-extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rmu, double *rxa, double *rscale, double *rE, double *rb){
+extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rmu, double *rxa, double *rscale, double *rE, double *rb){
 
 
 	//Define Variables//
 	int niter=*rniter;
 	int p=*rp;
 	int no=*rno;
+	int na=*rna;
 	double a=(no-1)/2;
 	double b;
 	double phi;
-	Mat<double> xa(p,p);
+	Mat<double> xa(na,p);
 	Mat<double> xaxa(p,p);
 	Mat<double> xoxo(p,p);
 	Mat<double> xoxog(p,p);
@@ -24,21 +25,20 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 	Mat<double> Lam(p,p);
 	Mat<double> xcxcLami(p,p);
 	Mat<double> xo(no,p);
-	Mat<double> E(p,p);
-	Mat<double> L(p,p);
+	Mat<double> E(na,na);
 	Mat<double> Ino=eye(no,no);
 	Mat<double> P=eye(p,p);
-	Mat<double> Ip=eye(p,p);
+	Mat<double> Ina=eye(na,na);
 	Mat<double> P1(no,no);
 	Mat<double> Px(no,no);
-	Mat<double> mu_trace(p,niter,fill::zeros);
-	Mat<double> E_trace(p*p,niter,fill::zeros);
+	Mat<double> mu_trace(na,niter,fill::zeros);
+	Mat<double> E_trace(na*na,niter,fill::zeros);
 	Mat<double> prob_trace(p,niter,fill::zeros);
 	Col<double> phi_trace(niter,fill::ones);
 	Col<double> b_trace(niter);
 	Col<double> yo(no);
 	Col<double> one(no,fill::ones);
-	Col<double> mu(p,fill::zeros);
+	Col<double> mu(na,fill::zeros);
 	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
 	Col<double> d(p);
@@ -108,9 +108,8 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 		phi=((double)a)/b;
 
 		//Ya Step//
-		mu=(Ip-xa*P*xcxcLami*xa.t()).i()*xa*P*xcxcLami*xo.t()*yo;
-		E=(Ip-xa*P*xcxcLami*xa.t()).i();
-		E=E;
+		mu=(Ina-xa*P*xcxcLami*xa.t()).i()*xa*P*xcxcLami*xo.t()*yo;
+		E=(Ina-xa*P*xcxcLami*xa.t()).i();
 
 		//Probability Step//
 		for (int i = 0; i < p; i++)
