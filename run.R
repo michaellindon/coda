@@ -13,6 +13,7 @@ b[5]=1;
 xo%*%b
 yo=xo%*%b+rnorm(no,0,3)+10000
 p=length(b)
+na=p
 niter=20000
 lam=rep(1,p)
 priorprob=rep(0.5,p)
@@ -32,24 +33,24 @@ scale=rep(0,p);
 
 #C++oda
 Sys.time()->start;
-res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale),as.integer(gamma))
+res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(na),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale),as.integer(gamma))
 print(Sys.time()-start);
-phi=(res[[9]])
-prob_mcmc=as.vector(res[[8]])
+phi=(res[[10]])
+prob_mcmc=as.vector(res[[9]])
 prob_mcmc=matrix(prob_mcmc,p,niter)
 #altaltprob_mcmc=as.vector(altaltres[[8]])
 #altaltprob_mcmc=matrix(altaltprob_mcmc,p,niter)
 incprob=apply(prob_mcmc[,-c(1:500)],1,mean)
 #altaltincprob=apply(altaltprob_mcmc[,-c(1:500)],1,mean)
-ya=as.vector(res[[10]])
+ya=as.vector(res[[11]])
 ya=matrix(ya,p,niter)
 #yaaltalt=as.vector(altaltres[[10]])
 #yaaltalt=matrix(yaaltalt,p,niter)
-xa=as.vector(res[[11]])
+xa=as.vector(res[[12]])
 xa=matrix(xa,p,p)
 #xaaltalt=as.vector(altaltres[[11]])
 #xaaltalt=matrix(xaaltalt,p,p)
-scale=res[[12]]
+scale=res[[13]]
 
 
 #Roda
@@ -222,17 +223,17 @@ E=matrix(0,p*p,niter)
 dyn.load("normal_var.so")
 
 Sys.time()->start;
-var=.C("normal_var",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(vincprob),as.double(phi),as.double(mu),as.double(xa),as.double(scale),as.double(E),as.double(b))
+var=.C("normal_var",as.double(yo),as.double(xo),as.integer(no),as.integer(na),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(vincprob),as.double(phi),as.double(mu),as.double(xa),as.double(scale),as.double(E),as.double(b))
 print(Sys.time()-start);
-mu=matrix(as.vector(var[[10]]),p,niter)
+mu=matrix(as.vector(var[[11]]),p,niter)
 mu=mu[,niter]
-E=matrix(as.vector(var[[13]]),p*p,niter)
+E=matrix(as.vector(var[[14]]),p*p,niter)
 E=matrix(E[,niter],p,p)
-phi=as.vector(var[[9]])
+phi=as.vector(var[[10]])
 phi=phi[niter]
-b=as.vector(var[[14]])
+b=as.vector(var[[15]])
 b=b[niter]
-vincprob=as.vector(var[[8]])
+vincprob=as.vector(var[[9]])
 vincprob=matrix(vincprob,p,niter)
 vincprob=vincprob[,niter]
 
