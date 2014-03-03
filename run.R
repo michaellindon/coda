@@ -1,7 +1,6 @@
 rm(list=ls())
 source("oda.bma.r")
 dyn.load("normal.so")
-
 set.seed(1)
 no=200
 foo=rnorm(no,0,1)
@@ -25,11 +24,14 @@ lammcmc=matrix(0,p,niter);
 phi=rep(0,niter)
 xa=matrix(0,p,p);
 scale=rep(0,p);
-
-
-
-
-#altaltres=.C("altaltnormal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale),as.integer(gamma))
+xo=scale(xo,center=T,scale=F)
+var=apply(xo^2,2,sum)
+xo=scale(xo,center=F,scale=sqrt(var/no))
+xoxo=t(xo)%*%xo
+A=-xoxo
+diag(A)=0
+diag(A)=abs(min(eigen(A)$values))+0.001
+xa=chol(A)
 
 #C++oda
 Sys.time()->start;
@@ -38,18 +40,9 @@ print(Sys.time()-start);
 phi=(res[[10]])
 prob_mcmc=as.vector(res[[9]])
 prob_mcmc=matrix(prob_mcmc,p,niter)
-#altaltprob_mcmc=as.vector(altaltres[[8]])
-#altaltprob_mcmc=matrix(altaltprob_mcmc,p,niter)
 incprob=apply(prob_mcmc[,-c(1:500)],1,mean)
-#altaltincprob=apply(altaltprob_mcmc[,-c(1:500)],1,mean)
 ya=as.vector(res[[11]])
 ya=matrix(ya,p,niter)
-#yaaltalt=as.vector(altaltres[[10]])
-#yaaltalt=matrix(yaaltalt,p,niter)
-xa=as.vector(res[[12]])
-xa=matrix(xa,p,p)
-#xaaltalt=as.vector(altaltres[[11]])
-#xaaltalt=matrix(xaaltalt,p,p)
 scale=res[[13]]
 
 
@@ -215,20 +208,19 @@ b=rep(0,niter)
 lam=rep(1,p)
 priorprob=rep(0.5,p)
 vincprob=matrix(0,p,niter);
-mu=matrix(0,p,niter);
+mu=matrix(0,na,niter);
 phi=rep(0,niter)
-xa=matrix(0,p,p);
 scale=rep(0,p);
-E=matrix(0,p*p,niter)
+E=matrix(0,na*na,niter)
 dyn.load("normal_var.so")
 
 Sys.time()->start;
 var=.C("normal_var",as.double(yo),as.double(xo),as.integer(no),as.integer(na),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(vincprob),as.double(phi),as.double(mu),as.double(xa),as.double(scale),as.double(E),as.double(b))
 print(Sys.time()-start);
-mu=matrix(as.vector(var[[11]]),p,niter)
+mu=matrix(as.vector(var[[11]]),na,niter)
 mu=mu[,niter]
-E=matrix(as.vector(var[[14]]),p*p,niter)
-E=matrix(E[,niter],p,p)
+E=matrix(as.vector(var[[14]]),na*na,niter)
+E=matrix(E[,niter],na,na)
 phi=as.vector(var[[10]])
 phi=phi[niter]
 b=as.vector(var[[15]])

@@ -61,32 +61,20 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rna, int *rp, do
 	//Copy RData Into Matrix Classes//
 	std::copy(ryo, ryo + yo.n_elem, yo.memptr());
 	std::copy(rxo, rxo + xo.n_elem, xo.memptr());
+	std::copy(rxa, rxa + xa.n_elem, xa.memptr());
 	std::copy(rlam, rlam + lam.n_elem, lam.memptr());
 	std::copy(rpriorprob, rpriorprob + priorprob.n_elem, priorprob.memptr());
 
 
-	P1=one*(one.t()*one).i()*one.t();
-	//P1.fill((double)(1/no)); This doesn't work
-	//Scale and Center Xo//
-	for (int c = 0; c < p; ++c)
-	{
-		xo.col(c)=xo.col(c)-P1*xo.col(c); //Center
-		rscale[c]=sqrt(no/dot(xo.col(c),xo.col(c)));
-		xo.col(c)=xo.col(c)*rscale[c];// Scale
-	}
-
-	//Create Xa//
+	//Create Matrices//
 	xoxo=xo.t()*xo;
-	xaxa=(-1)*xoxo; //Force off diagonal elements of xaxa to be (-1)* off diagonal elements of xoxo
-	xaxa.diag()=vec(p,fill::zeros); //Set the diagonal entries of xaxa to be zero
-	eig_sym(xaxa_eigenval,xaxa); //Calculate the most negative eigenvalue
-	xaxa.diag()=(0.001+abs(xaxa_eigenval(0)))*vec(p,fill::ones);
-	xa=chol(xaxa);
+	xaxa=xa.t()*xa;
 	D=xaxa+xoxo;
 	d=D.diag();
 
 
 	//Initialize Parameters at MLE//
+	P1=one*(one.t()*one).i()*one.t();
 	Px=xo*(xoxo).i()*xo.t();
 	phi=(no-1)/dot(yo,((Ino-P1-Px)*yo));
 	Bols=(xoxo).i()*xo.t()*yo;
@@ -157,5 +145,4 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rna, int *rp, do
 	std::copy(prob_mcmc.memptr(), prob_mcmc.memptr() + prob_mcmc.n_elem, rprobs);
 	std::copy(gamma_mcmc.memptr(), gamma_mcmc.memptr() + gamma_mcmc.n_elem, rgam);
 	std::copy(ya_mcmc.memptr(), ya_mcmc.memptr() + ya_mcmc.n_elem, rya);
-	std::copy(xa.memptr(), xa.memptr() + xa.n_elem, rxa);
 }
