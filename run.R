@@ -1,10 +1,11 @@
 rm(list=ls())
 source("oda.bma.r")
 dyn.load("normal.so")
+
 set.seed(1)
 no=200
 foo=rnorm(no,0,1)
-sd=10
+sd=0.5
 xo=cbind(foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd))
 b=rep(0,8);
 b[1]=1;
@@ -18,29 +19,43 @@ priorprob=rep(0.5,p)
 incprob=matrix(0,p,niter);
 gamma=matrix(0,p,niter);
 ya=matrix(0,p,niter);
+B=matrix(0,p,niter);
+lammcmc=matrix(0,p,niter);
 phi=rep(0,niter)
 xa=matrix(0,p,p);
 scale=rep(0,p);
+
+
+
+
+#altaltres=.C("altaltnormal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale),as.integer(gamma))
 
 #C++oda
 Sys.time()->start;
 res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale),as.integer(gamma))
 print(Sys.time()-start);
-mean(res[[9]])
+phi=(res[[9]])
 prob_mcmc=as.vector(res[[8]])
 prob_mcmc=matrix(prob_mcmc,p,niter)
+#altaltprob_mcmc=as.vector(altaltres[[8]])
+#altaltprob_mcmc=matrix(altaltprob_mcmc,p,niter)
 incprob=apply(prob_mcmc[,-c(1:500)],1,mean)
+#altaltincprob=apply(altaltprob_mcmc[,-c(1:500)],1,mean)
 ya=as.vector(res[[10]])
 ya=matrix(ya,p,niter)
+#yaaltalt=as.vector(altaltres[[10]])
+#yaaltalt=matrix(yaaltalt,p,niter)
 xa=as.vector(res[[11]])
 xa=matrix(xa,p,p)
+#xaaltalt=as.vector(altaltres[[11]])
+#xaaltalt=matrix(xaaltalt,p,p)
 scale=res[[12]]
 
 
 #Roda
 simdata = data.frame(xo,yo)
 burnin.sim <- 500;
-Gtot <- 20000;
+Gtot <- 2000;
 Sys.time()->start;
 oda.n <- oda.bma(x=simdata[,-dim(simdata)[2]],y=simdata$yo,niter=Gtot,burnin=burnin.sim,model="lm",prior="normal") # Normal prior for lm 
 print(Sys.time()-start);
@@ -127,17 +142,105 @@ inclusionprob=rep(0,dim(postprob)[2]-1)
 for(i in 1:dim(postprob)[2]-1){
   inclusionprob[i]=sum(postprob[,i+1]*postprob[,1]);
 }
-enumerate_inc_prob=round(inclusionprob,6)
-enumerate_inc_prob
+round(inclusionprob,4)
+round(incprob,4)
+round(oda.n$incprob.rb,4)
 
 
+
+
+par(mfrow=c(2,4))
+for(i in 1:p){
+plot(density(ya[i,]),xlim=c(min(mean(ya[i,])-3*sd(ya[1,]),mean(yaaltalt[i,])-3*sd(yaaltalt[i,])),max(mean(ya[i,])+3*sd(ya[1,]),mean(yaaltalt[i,])+3*sd(yaaltalt[i,]))))
+lines(density(yaalt[i,]),col="red")
+lines(density(yaaltalt[i,]),col="green")
+}
+
+
+
+foo=list()
+foobar=list()
+for(i in 1:p){
+foo[[i]] <- hist(prob_mcmc[i,],breaks=35)
+foobar[[i]] <- hist(altaltprob_mcmc[i,],breaks=35)
+}
+
+
+
+par(mfrow=c(2,4))
+for(i in 1:p){
+plot(foo[[i]], col="red")
+plot(foobar[[i]],col="blue",add=T)
+}
+
+
+
+
+
+
+
+alpha=1;
+simdata = data.frame(xo,yo)
+burnin.sim <- 500;
+Gtot <- 10000;
+dyn.load("t_gibbs.so")
+oda.t <- oda.bma(x=simdata[,-dim(simdata)[2]],y=simdata$yo,niter=Gtot,burnin=burnin.sim,model="lm",prior="Students-t",alpha=4) # Normal prior for lm 
+res=.C("t_gibbs",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale),as.integer(gamma),as.double(alpha),as.double(B),as.double(lammcmc))
+prob_mcmc=as.vector(res[[8]])
+prob_mcmc=matrix(prob_mcmc,p,niter)
+incprob=apply(prob_mcmc[,-c(1:500)],1,mean)
+incprob
+oda.t$incprob.rb
+lam_mcmc=as.vector(res[[16]])
+lam_mcmc=matrix(lam_mcmc,p,niter)
+B_mcmc=as.vector(res[[15]])
+B_mcmc=matrix(B_mcmc,p,niter)
+apply(B_mcmc,1,mean)
+apply(oda.t$B,2,mean)
+apply(lam_mcmc,1,mean)
+apply(oda.t$lam,2,mean)
+
+
+mean(res[[9]])
+mean(oda.t$phi)
+
+
+
+
+
+###Variational checks
+niter=100
+b=rep(0,niter)
+lam=rep(1,p)
+priorprob=rep(0.5,p)
+vincprob=matrix(0,p,niter);
+mu=matrix(0,p,niter);
+phi=rep(0,niter)
+xa=matrix(0,p,p);
+scale=rep(0,p);
+E=matrix(0,p*p,niter)
+dyn.load("normal_var.so")
+
+Sys.time()->start;
+var=.C("normal_var",as.double(yo),as.double(xo),as.integer(no),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(vincprob),as.double(phi),as.double(mu),as.double(xa),as.double(scale),as.double(E),as.double(b))
+print(Sys.time()-start);
+mu=matrix(as.vector(var[[10]]),p,niter)
+mu=mu[,niter]
+E=matrix(as.vector(var[[13]]),p*p,niter)
+E=matrix(E[,niter],p,p)
+phi=as.vector(var[[9]])
+phi=phi[niter]
+b=as.vector(var[[14]])
+b=b[niter]
+vincprob=as.vector(var[[8]])
+vincprob=matrix(vincprob,p,niter)
+vincprob=vincprob[,niter]
 
 par(mfrow=c(2,4))
 for(i in 1:p){
 plot(density(ya[i,]))
+lines(density(rnorm(10000,mu[i],sqrt(E[i,i]/phi))),col="red")
 }
 
-par(mfrow=c(2,4))
-for(i in 1:p){
-hist(prob_mcmc[i,])
-}
+plot(density(res[[9]]))
+lines(density(rgamma(10000,0.5*(no-1),b)),col="red")
