@@ -1,3 +1,4 @@
+#define MATHLIB_STANDALONE
 #include <cstdlib>
 #include <iostream>
 #include <armadillo>
@@ -12,8 +13,8 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 	int niter=*rniter;
 	int p=*rp;
 	int no=*rno;
-	int a=0.5*(no-1);
-	int b;
+	double a=(no-1)/2;
+	double b;
 	double phi;
 	Mat<double> xa(p,p);
 	Mat<double> xaxa(p,p);
@@ -41,7 +42,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
 	Col<double> d(p);
-	Col<double> Bmle(p);
+	Col<double> Bols(p);
 	Col<double> xoyo(p);
 	Col<double> prob(p,fill::ones);
 	Col<double> priorprob(p);
@@ -61,7 +62,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 	P1=one*(one.t()*one).i()*one.t();
 	//P1.fill((double)(1/no)); This doesn't work
 	//Scale and Center Xo//
-	for (int c = 0; c < p; c++)
+	for (int c = 0; c < p; ++c)
 	{
 		xo.col(c)=xo.col(c)-P1*xo.col(c); //Center
 		rscale[c]=sqrt(no/dot(xo.col(c),xo.col(c)));
@@ -86,7 +87,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 
 	//Single Instance Computations//
 	Lam=diagmat(lam);
-	for (int i = 0; i < p; i++)
+	for (int i = 0; i < p; ++i)
 	{
 		priorodds(i)=priorprob(i)/(1-priorprob(i));
 		ldl(i)=sqrt(lam(i)/(d(i)+lam(i)));
@@ -114,8 +115,8 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 		//Probability Step//
 		for (int i = 0; i < p; i++)
 		{
-			Bmle(i)=(1/d(i))*(xoyo(i)+dot(xa.col(i),mu));
-			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*dli(i)*(d(i)*d(i)*Bmle(i)*Bmle(i)+dot(xa.col(i),E*xa.col(i))/phi ));
+			Bols(i)=(1/d(i))*(xoyo(i)+dot(xa.col(i),mu));
+			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*dli(i)*(d(i)*d(i)*Bols(i)*Bols(i)+dot(xa.col(i),E*xa.col(i))/phi ));
 			prob(i)=odds(i)/(1+odds(i));
 		}
 		P.diag()=prob;
