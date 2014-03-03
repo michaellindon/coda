@@ -1,4 +1,3 @@
-#define MATHLIB_STANDALONE
 #include <cstdlib>
 #include <iostream>
 #include <armadillo>
@@ -6,7 +5,7 @@
 using namespace std;
 using namespace arma;
 
-extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rmu, double *rxa, double *rscale, double *rE){
+extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rmu, double *rxa, double *rscale, double *rE, double *rb){
 
 
 	//Define Variables//
@@ -36,6 +35,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 	Mat<double> E_trace(p*p,niter,fill::zeros);
 	Mat<double> prob_trace(p,niter,fill::zeros);
 	Col<double> phi_trace(niter,fill::ones);
+	Col<double> b_trace(niter);
 	Col<double> yo(no);
 	Col<double> one(no,fill::ones);
 	Col<double> mu(p,fill::zeros);
@@ -126,11 +126,13 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rp, double *
 		mu_trace.col(t)=mu;
 		E_trace.col(t)=vectorise(E);
 		phi_trace(t)=phi;
+		b_trace(t)=b;
 
 	}
 
 
 	std::copy(phi_trace.memptr(), phi_trace.memptr() + phi_trace.n_elem, rphi);
+	std::copy(b_trace.memptr(), b_trace.memptr() + b_trace.n_elem, rb);
 	std::copy(prob_trace.memptr(), prob_trace.memptr() + prob_trace.n_elem, rprobs);
 	std::copy(mu_trace.memptr(), mu_trace.memptr() + mu_trace.n_elem, rmu);
 	std::copy(E_trace.memptr(), E_trace.memptr() + E_trace.n_elem, rE);
