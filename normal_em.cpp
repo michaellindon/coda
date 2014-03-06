@@ -16,6 +16,7 @@ extern "C" void normal_em(double *ryo, double *rxo, int *rno, int *rna, int *rp,
 	double a=(no-1)/2;
 	double b;
 	double phi;
+	double varyo;
 	Mat<double> xa(na,p);
 	Mat<double> xaxa(p,p);
 	Mat<double> xoxo(p,p);
@@ -83,6 +84,7 @@ extern "C" void normal_em(double *ryo, double *rxo, int *rno, int *rna, int *rp,
 	//Run EM//
 	xoyo=xo.t()*yo;
 	xcxcLami=(D+Lam).i();
+	varyo=dot(yo,(Ino-P1)*yo);
 	for (int t = 1; t < niter; t++)
 	{
 
@@ -97,11 +99,11 @@ extern "C" void normal_em(double *ryo, double *rxo, int *rno, int *rna, int *rp,
 
 		//Phi Maximization Step//
 		Q=(D+Lam)*P.i();
-		b=0.5*dot(yo,(Ino-P1-xo*(Q-xaxa).i()*xo.t())*yo);
+		b=0.5*(varyo-dot(xoyo,(Q-xaxa).i()*xoyo));
 		phi=((double)a)/b;
 
 		//Ya Maximization Step//
-		ya=(Ina-xa*P*xcxcLami*xa.t()).i()*xa*P*xcxcLami*xo.t()*yo;
+		ya=(Ina-xa*P*xcxcLami*xa.t()).i()*xa*P*xcxcLami*xoyo;
 
 		//Store Values//
 		prob_trace.col(t)=prob;
