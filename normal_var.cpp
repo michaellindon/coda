@@ -92,16 +92,6 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 	for (int t = 1; t < niter; t++)
 	{
 
-
-		//Phi Step//
-		Q=(D+Lam)*Pi;
-		b=0.5*(varyo-dot(xoyo,(Q-xaxa).i()*xoyo));
-		phi=((double)a)/b;
-
-		//Ya Step//
-		mu=(Ina-xa*P*xcxcLami*xa.t()).i()*xa*P*xcxcLami*xoyo;
-		E=(Ina-xa*P*xcxcLami*xa.t()).i();
-
 		//Probability Step//
 		for (int i = 0; i < p; i++)
 		{
@@ -111,6 +101,15 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 		}
 		P.diag()=prob;
 		Pi.diag()=1/prob;
+
+		//Phi Step//
+		Q=(D+Lam)*Pi;
+		b=0.5*(varyo-dot(xoyo,(Q-xaxa).i()*xoyo));
+		phi=((double)a)/b;
+
+		//Ya Step//
+		mu=(Ina-xa*P*xcxcLami*xa.t()).i()*xa*P*xcxcLami*xoyo;
+		E=(Ina-xa*P*xcxcLami*xa.t()).i();
 
 		//Store Values//
 		prob_trace.col(t)=prob;
