@@ -265,7 +265,7 @@ vincprob=vincprob[,niter]
 par(mfrow=c(2,4))
 for(i in 1:na){
 plot(density(g.ya[i,]))
-lines(density(rnorm(10000,mu[i],sqrt(E[i,i]/phi))),col="red")
+lines(density(rnorm(10000,mu[i],sqrt(E[i,i]/v.phi))),col="red")
 }
 
 plot(density(res[[10]]))
