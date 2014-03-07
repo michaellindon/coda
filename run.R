@@ -6,7 +6,7 @@ dyn.load("normal.so")
 set.seed(1)
 no=200
 foo=rnorm(no,0,1)
-sd=0.1
+sd=0.8
 xo=cbind(foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd))
 b=rep(0,8);
 b[1]=1;
@@ -66,8 +66,6 @@ B=matrix(0,p,niter);
 lammcmc=matrix(0,p,niter);
 phi=rep(0,niter)
 scale=rep(0,p);
-
-
 #C++oda
 Sys.time()->start;
 res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(na),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale),as.integer(gamma))
@@ -238,7 +236,7 @@ mean(oda.t$phi)
 
 
 ###Variational checks
-niter=10000
+niter=1000
 b=rep(0,niter)
 lam=rep(1,p)
 priorprob=rep(0.5,p)
@@ -256,21 +254,21 @@ mu=matrix(as.vector(var[[11]]),na,niter)
 mu=mu[,niter]
 E=matrix(as.vector(var[[14]]),na*na,niter)
 E=matrix(E[,niter],na,na)
-phi=as.vector(var[[10]])
-phi=phi[niter]
+v.phi=as.vector(var[[10]])
+v.phi=v.phi[niter]
 b=as.vector(var[[15]])
 b=b[niter]
 vincprob=as.vector(var[[9]])
 vincprob=matrix(vincprob,p,niter)
 vincprob=vincprob[,niter]
 
-par(mfrow=c(4,4))
-for(i in 1:16){
-plot(density(ya[i,]))
+par(mfrow=c(2,4))
+for(i in 1:na){
+plot(density(g.ya[i,]))
 lines(density(rnorm(10000,mu[i],sqrt(E[i,i]/phi))),col="red")
 }
 
-plot(density(res[[9]]))
+plot(density(res[[10]]))
 lines(density(rgamma(10000,0.5*(no-1),b)),col="red")
 
 
@@ -300,4 +298,5 @@ par(mfrow=c(2,4))
 for(i in 1:8){
 plot(density(g.ya[i,]))
 abline(v=em.ya[i],col="red")
+lines(density(rnorm(10000,mu[i],sqrt(E[i,i]/v.phi))),col="green")
 }
