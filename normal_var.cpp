@@ -29,6 +29,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 	Mat<double> E(na,na);
 	Mat<double> Ino=eye(no,no);
 	Mat<double> P=eye(p,p);
+	Mat<double> Pi=eye(p,p);
 	Mat<double> Ina=eye(na,na);
 	Mat<double> P1(no,no);
 	Mat<double> Px(no,no);
@@ -93,7 +94,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 
 
 		//Phi Step//
-		Q=(D+Lam)*P.i();
+		Q=(D+Lam)*Pi;
 		b=0.5*(varyo-dot(xoyo,(Q-xaxa).i()*xoyo));
 		phi=((double)a)/b;
 
@@ -109,6 +110,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 			prob(i)=odds(i)/(1+odds(i));
 		}
 		P.diag()=prob;
+		Pi.diag()=1/prob;
 
 		//Store Values//
 		prob_trace.col(t)=prob;
