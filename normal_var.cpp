@@ -5,7 +5,7 @@
 using namespace std;
 using namespace arma;
 
-extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rmu, double *rxa, double *rscale, double *rE, double *rb){
+extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp, double *rlam, int *rniter, double *rpriorprob, double *rprobs, double *rphi, double *rmu, double *rxa, double *rscale, double *rH, double *rb){
 
 
 	//Define Variables//
@@ -26,7 +26,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 	Mat<double> Lam(p,p);
 	Mat<double> xcxcLami(p,p);
 	Mat<double> xo(no,p);
-	Mat<double> E(na,na);
+	Mat<double> H(na,na);
 	Mat<double> Ino=eye(no,no);
 	Mat<double> P=eye(p,p);
 	Mat<double> Pi=eye(p,p);
@@ -34,7 +34,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 	Mat<double> P1(no,no);
 	Mat<double> Px(no,no);
 	Mat<double> mu_trace(na,niter,fill::zeros);
-	Mat<double> E_trace(na*na,niter,fill::zeros);
+	Mat<double> H_trace(na*na,niter,fill::zeros);
 	Mat<double> prob_trace(p,niter,fill::zeros);
 	Col<double> phi_trace(niter,fill::ones);
 	Col<double> b_trace(niter);
@@ -87,7 +87,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 
 	//Run Variational//
 	xoyo=xo.t()*yo;
-	xcxcLami=(D+Lam).i();
+	xcxcLami=diagmat(1/(d+lam));
 	varyo=dot(yo,(Ino-P1)*yo);
 	for (int t = 1; t < niter; t++)
 	{
@@ -96,7 +96,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 		for (int i = 0; i < p; i++)
 		{
 			Bols(i)=(1/d(i))*(xoyo(i)+dot(xa.col(i),mu));
-			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*dli(i)*(d(i)*d(i)*Bols(i)*Bols(i)+dot(xa.col(i),E*xa.col(i))/phi ));
+			odds(i)=priorodds(i)*ldl(i)*trunc_exp(0.5*phi*dli(i)*(d(i)*d(i)*Bols(i)*Bols(i)+dot(xa.col(i),solve(H,xa.col(i)))/phi ));
 			prob(i)=odds(i)/(1+odds(i));
 		}
 		P.diag()=prob;
@@ -104,17 +104,17 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 
 		//Phi Step//
 		Q=(D+Lam)*Pi;
-		b=0.5*(varyo-dot(xoyo,(Q-xaxa).i()*xoyo));
+		b=0.5*(varyo-dot(xoyo,solve(Q-xaxa,xoyo)));
 		phi=((double)a)/b;
 
 		//Ya Step//
-		mu=(Ina-xa*P*xcxcLami*xa.t()).i()*xa*P*xcxcLami*xoyo;
-		E=(Ina-xa*P*xcxcLami*xa.t()).i();
+		mu=solve(Ina-xa*P*xcxcLami*xa.t(),xa*P*xcxcLami*xoyo);
+		H=Ina-xa*P*xcxcLami*xa.t();
 
 		//Store Values//
 		prob_trace.col(t)=prob;
 		mu_trace.col(t)=mu;
-		E_trace.col(t)=vectorise(E);
+		H_trace.col(t)=vectorise(H);
 		phi_trace(t)=phi;
 		b_trace(t)=b;
 
@@ -125,5 +125,5 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 	std::copy(b_trace.memptr(), b_trace.memptr() + b_trace.n_elem, rb);
 	std::copy(prob_trace.memptr(), prob_trace.memptr() + prob_trace.n_elem, rprobs);
 	std::copy(mu_trace.memptr(), mu_trace.memptr() + mu_trace.n_elem, rmu);
-	std::copy(E_trace.memptr(), E_trace.memptr() + E_trace.n_elem, rE);
+	std::copy(H_trace.memptr(), H_trace.memptr() + H_trace.n_elem, rH);
 }
