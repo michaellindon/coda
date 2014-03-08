@@ -26,7 +26,7 @@ extern "C" void normal_var(double *ryo, double *rxo, int *rno, int *rna, int *rp
 	Mat<double> Lam(p,p);
 	Mat<double> xcxcLami(p,p);
 	Mat<double> xo(no,p);
-	Mat<double> H(na,na);
+	Mat<double> H(na,na,fill::eye);
 	Mat<double> Ino=eye(no,no);
 	Mat<double> P=eye(p,p);
 	Mat<double> Pi=eye(p,p);
