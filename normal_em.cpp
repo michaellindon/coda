@@ -28,6 +28,7 @@ extern "C" void normal_em(double *ryo, double *rxo, int *rno, int *rna, int *rp,
 	Mat<double> xo(no,p);
 	Mat<double> Ino=eye(no,no);
 	Mat<double> P=eye(p,p);
+	Mat<double> Pi=eye(p,p);
 	Mat<double> Ina=eye(na,na);
 	Mat<double> P1(no,no);
 	Mat<double> Px(no,no);
@@ -83,7 +84,7 @@ extern "C" void normal_em(double *ryo, double *rxo, int *rno, int *rna, int *rp,
 
 	//Run EM//
 	xoyo=xo.t()*yo;
-	xcxcLami=(D+Lam).i();
+	xcxcLami=diagmat(1/(d+lam));
 	varyo=dot(yo,(Ino-P1)*yo);
 	for (int t = 1; t < niter; t++)
 	{
@@ -96,14 +97,15 @@ extern "C" void normal_em(double *ryo, double *rxo, int *rno, int *rna, int *rp,
 			prob(i)=odds(i)/(1+odds(i));
 		}
 		P.diag()=prob;
+		Pi.diag()=1/prob;
 
 		//Phi Maximization Step//
-		Q=(D+Lam)*P.i();
-		b=0.5*(varyo-dot(xoyo,(Q-xaxa).i()*xoyo));
+		Q=(D+Lam)*Pi;
+		b=0.5*(varyo-dot(xoyo,solve(Q-xaxa,xoyo)));
 		phi=((double)a)/b;
 
 		//Ya Maximization Step//
-		ya=(Ina-xa*P*xcxcLami*xa.t()).i()*xa*P*xcxcLami*xoyo;
+		ya=solve(Ina-xa*P*xcxcLami*xa.t(),xa*P*xcxcLami*xoyo);
 
 		//Store Values//
 		prob_trace.col(t)=prob;
