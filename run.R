@@ -6,7 +6,7 @@ dyn.load("normal.so")
 set.seed(1)
 no=200
 foo=rnorm(no,0,1)
-sd=0.8
+sd=0.4
 xo=cbind(foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd),foo+rnorm(no,0,sd))
 b=rep(0,8);
 b[1]=1;
@@ -28,30 +28,57 @@ L=eigen(A)$values
 L=sqrt(L)
 xa=diag(L)%*%t(V)
 
-xa=xa*sqrt(1/40)
-xapxp=xa
-xa=rbind(xa,xapxp)
-xa=rbind(xa,xapxp)
-xa=rbind(xa,xapxp)
-xa=rbind(xa,xapxp)
-xa=rbind(xa,xapxp)
-xa=rbind(xa,xapxp)
-xa=rbind(xa,xapxp)
-xa=rbind(xa,xapxp)
-xa=rbind(xa,xapxp)
+###Variational checks
+no=length(yo)
+na=dim
+niter=100
+b=rep(0,niter)
+p=dim(xa)[2]
+na=dim(xa)[1]
+lam=rep(1,dim(xa)[2])
+priorprob=rep(0.5,dim(xa)[2])
+vincprob=matrix(0,dim(xa)[2],niter);
+mu=matrix(0,dim(xa)[1],niter);
+phi=rep(0,niter)
+scale=rep(0,dim(xa)[2]);
+E=matrix(0,dim(xa)[1]*dim(xa)[1],niter)
+dyn.load("normal_var.so")
 
-xa=rbind(xa,xa,xa,xa)
+Sys.time()->start;
+var=.C("normal_var",as.double(yo),as.double(xo),as.integer(length(yo)),as.integer(dim(xa)[1]),as.integer(dim(xa)[2]),as.double(lam),as.integer(niter),as.double(priorprob),as.double(vincprob),as.double(phi),as.double(mu),as.double(xa),as.double(scale),as.double(E),as.double(b))
+print(Sys.time()-start);
+mu=matrix(as.vector(var[[11]]),na,niter)
+mu=mu[,niter]
+E=matrix(as.vector(var[[14]]),na*na,niter)
+E=matrix(E[,niter],na,na)
+v.phi=as.vector(var[[10]])
+v.phi=v.phi[niter]
+b=as.vector(var[[15]])
+b=b[niter]
+vincprob=as.vector(var[[9]])
+vincprob=matrix(vincprob,p,niter)
+vincprob=vincprob[,niter]
 
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
-#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+
+#EM Check
+dyn.load("normal_em.so")
+na=dim(xa)[1]
+p=dim(xa)[2]
+niter=100
+lam=rep(1,p)
+priorprob=rep(0.5,p)
+em_incprob=matrix(0,dim(xa)[2],niter)
+gamma=matrix(0,dim(xa)[2],niter);
+ya=matrix(0,dim(xa)[1],niter);
+phi=rep(0,niter)
+scale=rep(0,dim(xa)[2]);
+em=.C("normal_em",as.double(yo),as.double(xo),as.integer(no),as.integer(na),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(em_incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale))
+em.ya=as.vector(em[[11]])
+em.ya=matrix(em.ya,na,niter)
+em.ya=em.ya[,niter]
+em.incprob=as.vector(em[[9]])
+em.incprob=matrix(em.incprob,p,niter)
+em.incprob=em.incprob[,niter]
 
 #Create variables to pass to C++
 na=dim(xa)[1]
@@ -66,6 +93,7 @@ B=matrix(0,p,niter);
 lammcmc=matrix(0,p,niter);
 phi=rep(0,niter)
 scale=rep(0,p);
+
 #C++oda
 Sys.time()->start;
 res=.C("normal",as.double(yo),as.double(xo),as.integer(no),as.integer(na),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale),as.integer(gamma))
@@ -77,6 +105,40 @@ g.incprob=apply(prob_mcmc[,-c(1:500)],1,mean)
 g.ya=as.vector(res[[11]])
 g.ya=matrix(g.ya,na,niter)
 g.scale=res[[13]]
+
+par(mfrow=c(2,4))
+for(i in 1:8){
+plot(density(g.ya[i,]))
+abline(v=em.ya[i],col="red")
+lines(density(rnorm(10000,mu[i],sqrt(E[i,i]/v.phi))),col="green")
+}
+
+
+xa=xa*sqrt(1/40)
+xapxp=xa
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,qr.Q(qr(rWishart(1,8,diag(8))[,,1]))%*%xapxp)
+xa=rbind(xa,xa,xa,xa)
+
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+#xa=rbind(xa,(qr.Q(qr((rWishart(1,8,diag(8))[,,1]))))%*%xapxp)
+
+
 
 
 #Roda
@@ -235,32 +297,7 @@ mean(oda.t$phi)
 
 
 
-###Variational checks
-niter=1000
-b=rep(0,niter)
-lam=rep(1,p)
-priorprob=rep(0.5,p)
-vincprob=matrix(0,p,niter);
-mu=matrix(0,na,niter);
-phi=rep(0,niter)
-scale=rep(0,p);
-E=matrix(0,na*na,niter)
-dyn.load("normal_var.so")
 
-Sys.time()->start;
-var=.C("normal_var",as.double(yo),as.double(xo),as.integer(no),as.integer(na),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(vincprob),as.double(phi),as.double(mu),as.double(xa),as.double(scale),as.double(E),as.double(b))
-print(Sys.time()-start);
-mu=matrix(as.vector(var[[11]]),na,niter)
-mu=mu[,niter]
-E=matrix(as.vector(var[[14]]),na*na,niter)
-E=matrix(E[,niter],na,na)
-v.phi=as.vector(var[[10]])
-v.phi=v.phi[niter]
-b=as.vector(var[[15]])
-b=b[niter]
-vincprob=as.vector(var[[9]])
-vincprob=matrix(vincprob,p,niter)
-vincprob=vincprob[,niter]
 
 par(mfrow=c(2,4))
 for(i in 1:na){
@@ -272,31 +309,4 @@ plot(density(res[[10]]))
 lines(density(rgamma(10000,0.5*(no-1),b)),col="red")
 
 
-#EM Check
-dyn.load("normal_em.so")
-na=dim(xa)[1]
-p=dim(xa)[2]
-niter=1000
-lam=rep(1,p)
-priorprob=rep(0.5,p)
-em_incprob=matrix(0,p,niter)
-gamma=matrix(0,p,niter);
-ya=matrix(0,na,niter);
-B=matrix(0,p,niter);
-lammcmc=matrix(0,p,niter);
-phi=rep(0,niter)
-scale=rep(0,p);
-em=.C("normal_em",as.double(yo),as.double(xo),as.integer(no),as.integer(na),as.integer(p),as.double(lam),as.integer(niter),as.double(priorprob),as.double(em_incprob),as.double(phi),as.double(ya),as.double(xa),as.double(scale))
-em.ya=as.vector(em[[11]])
-em.ya=matrix(em.ya,na,niter)
-em.ya=em.ya[,niter]
-em.incprob=as.vector(em[[9]])
-em.incprob=matrix(em.incprob,p,niter)
-em.incprob=em.incprob[,niter]
 
-par(mfrow=c(2,4))
-for(i in 1:8){
-plot(density(g.ya[i,]))
-abline(v=em.ya[i],col="red")
-lines(density(rnorm(10000,mu[i],sqrt(E[i,i]/v.phi))),col="green")
-}
