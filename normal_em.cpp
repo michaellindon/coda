@@ -38,7 +38,6 @@ extern "C" void normal_em(double *ryo, double *rxo, int *rno, int *rna, int *rp,
 	Col<double> yo(no);
 	Col<double> one(no,fill::ones);
 	Col<double> ya(na,fill::zeros);
-	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
 	Col<double> d(p);
 	Col<double> Bols(p);

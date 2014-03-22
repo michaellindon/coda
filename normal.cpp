@@ -43,7 +43,6 @@ extern "C" void normal(double *ryo, double *rxo, int *rno, int *rna, int *rp, do
 	Col<double> mu(na);
 	Col<double> ya(na);
 	Col<double> Z(na);
-	Col<double> xaxa_eigenval(p);
 	Col<double> lam(p);
 	Col<double> d(p);
 	Col<double> Bols(p);
