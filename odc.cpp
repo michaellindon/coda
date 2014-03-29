@@ -18,13 +18,17 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 	int ns=*rns;
 	double a=(no-1)/2;
 	double b;
+	double ldensity_current=0.0;
+	double ldensity_proposed=0.0;
 	double gammadensity_current;
 	double gammadensity_proposed;
-	double ldensity_current;
-	double ldensity_proposed;
 	double phi;
 	Mat<double> xs(ns,p);
+	Mat<double> xa(ns,p);
+	Mat<double> xc(no+ns,p);
 	Mat<double> xsg;
+	Mat<double> xag;
+	Mat<double> xcg;
 	Mat<double> xoxo(p,p);
 	Mat<double> xsxs(p,p);
 	Mat<double> xoxog(p,p);
@@ -38,6 +42,9 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 	Mat<double> xog;
 	Mat<double> Ino=eye(no,no);
 	Mat<double> Ins=eye(ns,ns);
+	Mat<double> Inc;
+	Mat<double> Io;
+	Mat<double> Is;
 	Mat<double> P1(no,no);
 	Mat<double> Px(no,no);
 	Mat<double> ys_mcmc(ns,niter,fill::zeros);
@@ -45,6 +52,7 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 	Mat<uword>  gamma_mcmc(p,niter,fill::zeros);
 	Col<double> phi_mcmc(niter,fill::ones);
 	Col<double> yo(no);
+	Col<double> yc(no+ns);
 	Col<double> one(no,fill::ones);
 	Col<double> mu(ns);
 	Col<double> ys(ns);
@@ -72,6 +80,11 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 
 
 	//Create Matrices//
+	Io=join_rows(Ino, Ino);
+	Is=join_rows(Ins,2*Ins);
+	Inc=join_cols(Io, Is);
+	xc=join_cols(xo,xs);
+	xa=xs-xo;
 	xoxo=xo.t()*xo;
 	xsxs=xs.t()*xs;
 	D=xsxs;
@@ -109,6 +122,8 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 		Lamg=Lam.submat(inc_indices,inc_indices);
 		xsg=xs.cols(inc_indices);
 		xog=xo.cols(inc_indices);
+		xag=xa.cols(inc_indices);
+		xcg=xc.cols(inc_indices);
 		xoxog=xoxo.submat(inc_indices,inc_indices);
 		xsxsg=xsxs.submat(inc_indices,inc_indices);
 
@@ -117,17 +132,16 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 		phi=rgamma(a,(1/b)); //rgamma uses scale
 
 		//Draw Ys ~ Ys|Yo,γ,ϕ//
-		mu=xsg*(xoxog+Lamg).i()*xog.t()*yo;
-		E=Ino+xsg*(xoxog+Lamg).i()*xsg.t();
-		E=E/phi;
+		mu=(Ins+xsg*Lamg.i()*xog.t())*solve(Ino+xog*Lamg.i()*xog.t(),yo);
+		E=Ino+xag*(xoxog+Lamg).i()*xag.t();
 		L=chol(E);
 		for (int i = 0; i < ns; ++i) Z(i)=rnorm(0,1);
-		ys=mu+L.t()*Z;
+		ys=mu+(L.t()*Z)/sqrt(phi);
 
-		//Calculate log[ f(Yo|Ys,γ,ϕ) ]//
-		mu=xog*(xsxsg+Lamg).i()*xsg.t()*ys;
-		E=Ino+xog*(xsxsg+Lamg).i()*xog.t();
-		ldensity_current=0.5*no*log(phi)-0.5*log(det(E))-0.5*phi*dot(yo-mu,solve(E,yo-mu));
+		//Calculate log[ f(Yo,Ys|γ,ϕ) ]//
+		yc=join_cols(yo, ys);
+		E=Inc+xcg*Lamg.i()*xcg.t();
+		ldensity_current=-0.5*log(det(E))-0.5*phi*dot(yc,solve(E,yc));
 
 		//Calculate P(γ==1|Ys,ϕ)//
 		for (int i = 0; i < p; ++i)
@@ -137,7 +151,7 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 			prob(i)=odds(i)/(1+odds(i));
 		}
 
-		/*//Calculate  π(γ|Ys,ϕ)// 
+                //Calculate  g(γ|Ys,ϕ)// 
 		gammadensity_current=1;
 		for (int i = 0; i < p; ++i)
 		{
@@ -147,7 +161,7 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 				gammadensity_current*=(1-prob(i));
 			}
 			
-		}*/
+		}
 
 		//Draw γ' ~ γ|Ys,ϕ//
 		for (int i = 0; i < p; ++i)
@@ -160,7 +174,7 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 			
 		}
 
-		/*//Calculate  π(γ'|Ys,ϕ)// 
+		//Calculate  g(γ'|Ys,ϕ)// 
 		gammadensity_proposed=1;
 		for (int i = 0; i < p; ++i)
 		{
@@ -170,23 +184,25 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 				gammadensity_proposed*=(1-prob(i));
 			}
 			
-		}*/
+		}
 
 		//Form Submatrices//
 		inc_indices=find(gamma);
 		Lamg=Lam.submat(inc_indices,inc_indices);
 		xsg=xs.cols(inc_indices);
 		xog=xo.cols(inc_indices);
+		xag=xa.cols(inc_indices);
+		xcg=xc.cols(inc_indices);
 		xoxog=xoxo.submat(inc_indices,inc_indices);
 		xsxsg=xsxs.submat(inc_indices,inc_indices);
 
-		//Calculate log[ f(Yo|Ys,γ',ϕ) ]
-		mu=xog*(xsxsg+Lamg).i()*xsg.t()*ys;
-		E=Ino+xog*(xsxsg+Lamg).i()*xog.t();
-		ldensity_proposed=0.5*no*log(phi)-0.5*log(det(E))-0.5*phi*dot(yo-mu,solve(E,yo-mu));
+		//Calculate log[ f(Yo,Ys|γ',ϕ) ]
+		yc=join_cols(yo, ys);
+		E=Inc+xcg*Lamg.i()*xcg.t();
+		ldensity_proposed=-0.5*log(det(E))-0.5*phi*dot(yc,solve(E,yc));
 
 		//Draw γ ~ γ|Yo,Ys,ϕ via MH//
-		if(log(runif(0,1))<ldensity_proposed-ldensity_current/*+log(gammadensity_current)-log(gammadensity_proposed)*/){
+		if(log(runif(0,1))<ldensity_proposed-ldensity_current+log(gammadensity_current)-log(gammadensity_proposed)){
 			//accept proposed gamma
 			acceptance=acceptance+1;
 		}else{
