@@ -16,6 +16,7 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 	int p=*rp;
 	int no=*rno;
 	int ns=*rns;
+	double w=1;
 	double a=(no-1)/2;
 	double b;
 	double ldensity_current=0.0;
@@ -81,7 +82,7 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 
 	//Create Matrices//
 	Io=join_rows(Ino, Ino);
-	Is=join_rows(Ins,2*Ins);
+	Is=join_rows(Ins,(1+w)*Ins);
 	Inc=join_cols(Io, Is);
 	xc=join_cols(xo,xs);
 	xa=xs-xo;
@@ -133,10 +134,11 @@ extern "C" void odc(double *ryo, double *rxo, int *rno, int *rns, int *rp, doubl
 
 		//Draw Ys ~ Ys|Yo,γ,ϕ//
 		mu=(Ins+xsg*Lamg.i()*xog.t())*solve(Ino+xog*Lamg.i()*xog.t(),yo);
-		E=Ino+xag*(xoxog+Lamg).i()*xag.t();
+		E=w*Ino+xag*(xoxog+Lamg).i()*xag.t();
+		E=E/phi;
 		L=chol(E);
 		for (int i = 0; i < ns; ++i) Z(i)=rnorm(0,1);
-		ys=mu+(L.t()*Z)/sqrt(phi);
+		ys=mu+(L.t()*Z);
 
 		//Calculate log[ f(Yo,Ys|γ,ϕ) ]//
 		yc=join_cols(yo, ys);
