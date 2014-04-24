@@ -1,4 +1,5 @@
-oda
+coda
 ===
 
-Orthogonal Data Augmentation, a C++ library for R
+Orthogonal Data Augmentation, a C++ 
+(renamed the repo)
